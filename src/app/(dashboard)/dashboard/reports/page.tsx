@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import SyncButton from './SyncButton'
 
@@ -36,8 +37,16 @@ export default async function ReportsPage({
 }) {
   const { date: dateParam } = await searchParams
 
+  const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
+
   const dates = await query<{ date: string }>(
-    'SELECT DISTINCT date::text FROM quota_history ORDER BY date DESC LIMIT 90'
+    `SELECT DISTINCT qh.date::text
+     FROM quota_history qh
+     JOIN clubs c ON c.club_id = qh.club_id
+     WHERE c.guild_id::text = ANY($1::text[])
+     ORDER BY qh.date DESC LIMIT 90`,
+    [guildIds]
   ).catch(() => [] as { date: string }[])
 
   const availableDates = dates.map(d => d.date)
@@ -77,8 +86,9 @@ export default async function ReportsPage({
     LEFT JOIN first_entry f ON f.club_id = c.club_id
     LEFT JOIN synced s ON s.club_id = c.club_id
     WHERE c.is_active = true
+      AND c.guild_id::text = ANY($1::text[])
     ORDER BY c.club_name
-  `).catch(() => [] as ClubInfo[])
+  `, [guildIds]).catch(() => [] as ClubInfo[])
 
   const entries = selectedDate
     ? await query<Entry>(`
@@ -92,8 +102,9 @@ export default async function ReportsPage({
         JOIN clubs   c ON c.club_id   = qh.club_id
         LEFT JOIN bombs b ON b.member_id = m.member_id AND b.is_active = true
         WHERE qh.date = $1
+          AND c.guild_id::text = ANY($2::text[])
         ORDER BY c.club_name, qh.deficit_surplus DESC
-      `, [selectedDate]).catch(() => [] as Entry[])
+      `, [selectedDate, guildIds]).catch(() => [] as Entry[])
     : []
 
   const byClub: Record<string, Entry[]> = {}

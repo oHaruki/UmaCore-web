@@ -90,7 +90,7 @@ export default function MemberEditPanel({
         <div>
           <p className="text-xs text-zinc-500 mb-1.5">Last seen</p>
           <p className="text-sm text-zinc-400">
-            {lastSeen ? new Date(lastSeen).toLocaleDateString() : '—'}
+            {lastSeen ? new Date(lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </p>
         </div>
 
