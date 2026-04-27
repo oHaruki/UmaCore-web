@@ -21,6 +21,7 @@ type RankPoint = {
 
 export default async function DashboardPage() {
   const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
 
   const [clubStats, recent, atRisk, rankHistory] = await Promise.all([
     query<ClubStat>(`
@@ -33,8 +34,9 @@ export default async function DashboardPage() {
       LEFT JOIN LATERAL (
         SELECT deficit_surplus FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
       ) lat ON true
+      WHERE c.guild_id::text = ANY($1::text[])
       GROUP BY c.club_id ORDER BY c.club_name
-    `).catch(() => []),
+    `, [guildIds]).catch(() => []),
 
     query<RecentEntry>(`
       SELECT m.member_id, m.trainer_name, c.club_name, qh.date::text,
@@ -42,8 +44,9 @@ export default async function DashboardPage() {
       FROM quota_history qh
       JOIN members m ON m.member_id = qh.member_id
       JOIN clubs c ON c.club_id = qh.club_id
+      WHERE c.guild_id::text = ANY($1::text[])
       ORDER BY qh.date DESC, qh.created_at DESC LIMIT 8
-    `).catch(() => []),
+    `, [guildIds]).catch(() => []),
 
     query<AtRisk>(`
       SELECT m.member_id, m.trainer_name, c.club_name,
@@ -58,18 +61,20 @@ export default async function DashboardPage() {
       ) lat ON true
       LEFT JOIN bombs b ON b.member_id = m.member_id AND b.is_active = true
       WHERE m.is_active = true
+        AND c.guild_id::text = ANY($1::text[])
         AND (lat.days_behind > 0 OR (b.bomb_id IS NOT NULL AND b.is_active))
       ORDER BY bomb_active DESC, lat.days_behind DESC
       LIMIT 10
-    `).catch(() => []),
+    `, [guildIds]).catch(() => []),
 
     query<RankPoint>(`
       SELECT crh.club_id::text, c.club_name, crh.date::text, crh.club_rank::text
       FROM club_rank_history crh
       JOIN clubs c ON c.club_id = crh.club_id
       WHERE crh.date >= CURRENT_DATE - INTERVAL '30 days'
+        AND c.guild_id::text = ANY($1::text[])
       ORDER BY c.club_name, crh.date ASC
-    `).catch(() => []),
+    `, [guildIds]).catch(() => []),
   ])
 
   const totals = clubStats.reduce(

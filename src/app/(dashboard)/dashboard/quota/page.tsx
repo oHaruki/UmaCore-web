@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
 
 type Entry = {
   trainer_name: string
@@ -28,7 +29,19 @@ export default async function QuotaPage({
   const { range = '30', club, trainer } = await searchParams
   const rangeConfig = RANGES.find(r => r.value === range) ?? RANGES[1]
 
-  const clubs = await query<Club>('SELECT club_id, club_name FROM clubs ORDER BY club_name').catch(() => [])
+  const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
+
+  // $1 is always guildIds; club/trainer shift indices up by 1
+  const dynamicParams = [guildIds, ...[club, trainer].filter(Boolean)]
+  let pidx = 2
+  const clubFilter   = club    ? `AND qh.club_id = $${pidx++}`    : ''
+  const trainerFilter = trainer ? `AND m.trainer_id = $${pidx++}` : ''
+
+  const clubs = await query<Club>(
+    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
+    [guildIds]
+  ).catch(() => [])
 
   const entries = await query<Entry>(`
     SELECT
@@ -43,13 +56,18 @@ export default async function QuotaPage({
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
     JOIN clubs   c ON c.club_id   = qh.club_id
-    WHERE 1=1
+    WHERE c.guild_id::text = ANY($1::text[])
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
-      ${club    ? 'AND qh.club_id = $1'         : ''}
-      ${trainer ? `AND m.trainer_id = $${club ? 2 : 1}` : ''}
+      ${clubFilter}
+      ${trainerFilter}
     ORDER BY qh.date DESC, m.trainer_name
     LIMIT 300
-  `, [club, trainer].filter(Boolean)).catch(() => [])
+  `, dynamicParams).catch(() => [])
+
+  // Reset indices for summary query (same params)
+  let sidx = 2
+  const sClubFilter    = club    ? `AND qh.club_id = $${sidx++}`    : ''
+  const sTrainerFilter = trainer ? `AND m.trainer_id = $${sidx++}` : ''
 
   const summary = await query<{ on_track: string; behind: string; avg_surplus: string; total_fans: string }>(`
     SELECT
@@ -59,11 +77,12 @@ export default async function QuotaPage({
       SUM(qh.cumulative_fans)::text                             AS total_fans
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
-    WHERE 1=1
+    JOIN clubs   c ON c.club_id   = qh.club_id
+    WHERE c.guild_id::text = ANY($1::text[])
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
-      ${club    ? 'AND qh.club_id = $1'         : ''}
-      ${trainer ? `AND m.trainer_id = $${club ? 2 : 1}` : ''}
-  `, [club, trainer].filter(Boolean)).catch(() => [{ on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }])
+      ${sClubFilter}
+      ${sTrainerFilter}
+  `, dynamicParams).catch(() => [{ on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }])
 
   const s = summary[0] ?? { on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }
 

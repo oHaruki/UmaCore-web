@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { ownsClub } from '@/lib/guild-check'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
 
@@ -16,6 +17,9 @@ export async function POST(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { clubId } = await params
+
+  if (!(await ownsClub(session, clubId)))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const last = syncCooldowns.get(clubId)
   if (last && Date.now() - last < COOLDOWN_MS) {

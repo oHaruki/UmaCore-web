@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import { MemberToggle, AddMemberButton } from './MemberActions'
 import MemberSearch from './MemberSearch'
@@ -27,7 +28,19 @@ export default async function MembersPage({
 }) {
   const { filter, club, search } = await searchParams
 
-  const clubs = await query<Club>('SELECT club_id, club_name FROM clubs ORDER BY club_name').catch(() => [])
+  const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
+
+  // $1 = guildIds always; club/search shift up
+  let midx = 2
+  const clubFilter   = club   ? `AND c.club_id = $${midx++}`                    : ''
+  const searchFilter = search ? `AND m.trainer_name ILIKE $${midx++}`           : ''
+  const memberParams = [guildIds, ...[club, search ? `%${search}%` : null].filter(Boolean)]
+
+  const clubs = await query<Club>(
+    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
+    [guildIds]
+  ).catch(() => [])
 
   const members = await query<Member>(`
     SELECT
@@ -40,19 +53,22 @@ export default async function MembersPage({
       SELECT deficit_surplus, cumulative_fans, days_behind
       FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
     ) lat ON true
-    WHERE 1=1
+    WHERE c.guild_id::text = ANY($1::text[])
       ${filter === 'active'   ? 'AND m.is_active = true'  : ''}
       ${filter === 'inactive' ? 'AND m.is_active = false' : ''}
-      ${club   ? 'AND c.club_id = $1'                    : ''}
-      ${search ? `AND m.trainer_name ILIKE $${club ? 2 : 1}` : ''}
+      ${clubFilter}
+      ${searchFilter}
     ORDER BY m.is_active DESC, m.trainer_name
-  `, [club, search ? `%${search}%` : null].filter(Boolean)).catch(() => [])
+  `, memberParams).catch(() => [])
 
   const counts = await query<{ filter: string; c: string }>(`
-    SELECT CASE WHEN is_active THEN 'active' ELSE 'inactive' END AS filter, COUNT(*)::text AS c
-    FROM members ${club ? 'WHERE club_id = $1' : ''}
-    GROUP BY is_active
-  `, club ? [club] : []).catch(() => [])
+    SELECT CASE WHEN m.is_active THEN 'active' ELSE 'inactive' END AS filter, COUNT(*)::text AS c
+    FROM members m
+    JOIN clubs c ON c.club_id = m.club_id
+    WHERE c.guild_id::text = ANY($1::text[])
+      ${club ? 'AND m.club_id = $2' : ''}
+    GROUP BY m.is_active
+  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
 
   const total     = counts.reduce((a, r) => a + Number(r.c), 0)
   const activeN   = counts.find(r => r.filter === 'active')?.c  ?? '0'

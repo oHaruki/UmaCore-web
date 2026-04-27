@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
 import ClubDetail from './ClubDetail'
 import AddClubButton from './AddClubModal'
 import Link from 'next/link'
@@ -36,6 +37,9 @@ export default async function SettingsPage({
 }) {
   const { club: selectedId } = await searchParams
 
+  const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
+
   const clubs = await query<Club>(`
     SELECT club_id, club_name, daily_quota::text, quota_period,
            is_active, bombs_enabled, bomb_trigger_days, bomb_countdown_days,
@@ -43,8 +47,8 @@ export default async function SettingsPage({
            report_channel_id::text, alert_channel_id::text,
            monthly_info_channel_id::text,
            scrape_url, circle_id, guild_id::text
-    FROM clubs ORDER BY club_name
-  `).catch(() => [])
+    FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name
+  `, [guildIds]).catch(() => [])
 
   const selected = clubs.find(c => c.club_id === selectedId) ?? clubs[0]
 

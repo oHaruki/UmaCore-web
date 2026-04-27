@@ -13,6 +13,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'club_name, guild_id and daily_quota are required' }, { status: 400 })
   }
 
+  let guildIdStr: string
+  try {
+    guildIdStr = BigInt(guild_id).toString()
+  } catch {
+    return NextResponse.json({ error: 'Invalid guild_id' }, { status: 400 })
+  }
+  if (!session.adminGuildIds?.includes(guildIdStr))
+    return NextResponse.json({ error: 'Forbidden — you are not an admin of that server' }, { status: 403 })
+
   const result = await query<{ club_id: string }>(`
     INSERT INTO clubs (
       club_id, club_name, scrape_url, circle_id, guild_id, daily_quota, quota_period,

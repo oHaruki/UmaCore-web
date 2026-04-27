@@ -1,4 +1,5 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
 
 type Bomb = {
   bomb_id: string
@@ -19,6 +20,9 @@ export default async function BombsPage({
 }) {
   const { tab = 'active', club } = await searchParams
 
+  const session = await auth()
+  const guildIds = session?.adminGuildIds ?? []
+
   const bombs = await query<Bomb>(`
     SELECT
       b.bomb_id,
@@ -34,21 +38,26 @@ export default async function BombsPage({
     JOIN members m ON m.member_id = b.member_id
     JOIN clubs   c ON c.club_id   = b.club_id
     WHERE b.is_active = ${tab === 'active' ? 'true' : 'false'}
-      ${club ? 'AND b.club_id = $1' : ''}
+      AND c.guild_id::text = ANY($1::text[])
+      ${club ? 'AND b.club_id = $2' : ''}
     ORDER BY b.days_remaining ASC, b.activation_date DESC
-  `, club ? [club] : []).catch(() => [])
+  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
 
   const counts = await query<{ is_active: boolean; c: string }>(`
-    SELECT is_active, COUNT(*)::text AS c FROM bombs
-    ${club ? 'WHERE club_id = $1' : ''}
-    GROUP BY is_active
-  `, club ? [club] : []).catch(() => [])
+    SELECT b.is_active, COUNT(*)::text AS c
+    FROM bombs b
+    JOIN clubs c ON c.club_id = b.club_id
+    WHERE c.guild_id::text = ANY($1::text[])
+      ${club ? 'AND b.club_id = $2' : ''}
+    GROUP BY b.is_active
+  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
 
   const activeCount   = counts.find(r => r.is_active)?.c  ?? '0'
   const inactiveCount = counts.find(r => !r.is_active)?.c ?? '0'
 
   const clubs = await query<{ club_id: string; club_name: string }>(
-    'SELECT club_id, club_name FROM clubs ORDER BY club_name'
+    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
+    [guildIds]
   ).catch(() => [])
 
   return (

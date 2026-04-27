@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { ownsClub } from '@/lib/guild-check'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -11,6 +12,9 @@ export async function POST(req: NextRequest) {
   if (!trainer_name || !trainer_id || !club_id) {
     return NextResponse.json({ error: 'trainer_name, trainer_id and club_id are required' }, { status: 400 })
   }
+
+  if (!(await ownsClub(session, club_id)))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const existing = await query(
     'SELECT member_id FROM members WHERE trainer_id = $1 AND club_id = $2',

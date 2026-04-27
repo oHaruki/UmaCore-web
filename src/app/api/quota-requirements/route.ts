@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { ownsClub } from '@/lib/guild-check'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
 
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
   if (!Number.isInteger(quota) || quota <= 0 || quota > 1_000_000_000)
     return NextResponse.json({ error: 'daily_quota must be a positive integer up to 1,000,000,000' }, { status: 400 })
 
+  if (!(await ownsClub(session, club_id)))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
   const setBy = (session.user as { name?: string })?.name ?? 'web'
 
   const rows = await query<{ id: string }>(
@@ -55,6 +59,9 @@ export async function DELETE(req: NextRequest) {
 
   if (!id || !club_id)
     return NextResponse.json({ error: 'id and club_id are required' }, { status: 400 })
+
+  if (!(await ownsClub(session, club_id)))
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   await query(
     `DELETE FROM quota_requirements WHERE id = $1 AND club_id = $2`,
