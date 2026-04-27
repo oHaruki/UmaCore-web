@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2 } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const nav = [
   { label: 'Overview',      href: '/dashboard',          icon: LayoutDashboard },
+  { label: 'Club Overview', href: '/dashboard/clubs',    icon: BarChart3 },
   { label: 'Members',       href: '/dashboard/members',  icon: Users },
   { label: 'Reports',       href: '/dashboard/reports',  icon: FileBarChart2 },
   { label: 'Quota History', href: '/dashboard/quota',    icon: ScrollText },
@@ -43,7 +44,20 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-3 py-4 border-t border-white/5">
+      <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
+        <Link
+          href="/dashboard/changelog"
+          className={cn(
+            'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+            pathname === '/dashboard/changelog'
+              ? 'bg-violet-600/20 text-violet-300'
+              : 'text-zinc-400 hover:text-white hover:bg-white/5'
+          )}
+        >
+          <Sparkles size={16} />
+          What&apos;s new
+          <span className="ml-auto w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0" />
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors w-full"

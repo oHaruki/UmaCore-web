@@ -23,11 +23,17 @@ export default function SyncButton({ clubId, hasCircleId }: { clubId: string; ha
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Sync failed')
       setStatus('success')
-      const parts = [`${json.updated_members} members`]
-      if (json.backfilled) parts.push(`${json.backfilled} days backfilled`)
-      setDetail(parts.join(' · '))
-      router.refresh()
-      setTimeout(() => setStatus('idle'), 3000)
+      if (json.note === 'response incomplete') {
+        setDetail('synced (large backfill — refreshing…)')
+        // Bot finished writing but connection dropped; give it a moment before refreshing
+        setTimeout(() => { router.refresh(); setTimeout(() => setStatus('idle'), 3000) }, 3000)
+      } else {
+        const parts = [`${json.updated_members} members`]
+        if (json.backfilled) parts.push(`${json.backfilled} days backfilled`)
+        setDetail(parts.join(' · '))
+        router.refresh()
+        setTimeout(() => setStatus('idle'), 3000)
+      }
     } catch (err) {
       setStatus('error')
       setDetail(err instanceof Error ? err.message : String(err))

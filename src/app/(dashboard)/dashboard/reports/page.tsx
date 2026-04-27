@@ -41,13 +41,13 @@ export default async function ReportsPage({
   const guildIds = session?.adminGuildIds ?? []
 
   const dates = await query<{ date: string }>(
-    `SELECT DISTINCT qh.date::text
+    `SELECT DISTINCT qh.date::text AS date
      FROM quota_history qh
-     JOIN clubs c ON c.club_id = qh.club_id
+     JOIN clubs c ON c.club_id::text = qh.club_id::text
      WHERE c.guild_id::text = ANY($1::text[])
-     ORDER BY qh.date DESC LIMIT 90`,
+     ORDER BY qh.date::text DESC LIMIT 90`,
     [guildIds]
-  ).catch(() => [] as { date: string }[])
+  ).catch((e) => { console.error('[reports dates]', e); return [] as { date: string }[] })
 
   const availableDates = dates.map(d => d.date)
   const latestDate = availableDates[0] ?? null
@@ -99,12 +99,12 @@ export default async function ReportsPage({
           b.days_remaining::text, b.is_active AS bomb_active
         FROM quota_history qh
         JOIN members m ON m.member_id = qh.member_id AND m.is_active = true
-        JOIN clubs   c ON c.club_id   = qh.club_id
+        JOIN clubs   c ON c.club_id::text = qh.club_id::text
         LEFT JOIN bombs b ON b.member_id = m.member_id AND b.is_active = true
         WHERE qh.date = $1
           AND c.guild_id::text = ANY($2::text[])
         ORDER BY c.club_name, qh.deficit_surplus DESC
-      `, [selectedDate, guildIds]).catch(() => [] as Entry[])
+      `, [selectedDate, guildIds]).catch((e) => { console.error('[reports entries]', e); return [] as Entry[] })
     : []
 
   const byClub: Record<string, Entry[]> = {}

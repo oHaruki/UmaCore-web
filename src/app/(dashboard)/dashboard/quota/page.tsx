@@ -55,7 +55,7 @@ export default async function QuotaPage({
       qh.days_behind::text
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
-    JOIN clubs   c ON c.club_id   = qh.club_id
+    JOIN clubs   c ON c.club_id::text = qh.club_id::text
     WHERE c.guild_id::text = ANY($1::text[])
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
       ${clubFilter}
@@ -77,7 +77,7 @@ export default async function QuotaPage({
       SUM(qh.cumulative_fans)::text                             AS total_fans
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
-    JOIN clubs   c ON c.club_id   = qh.club_id
+    JOIN clubs   c ON c.club_id::text = qh.club_id::text
     WHERE c.guild_id::text = ANY($1::text[])
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
       ${sClubFilter}

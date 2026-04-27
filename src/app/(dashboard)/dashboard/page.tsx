@@ -26,7 +26,7 @@ export default async function DashboardPage() {
   const [clubStats, recent, atRisk, rankHistory] = await Promise.all([
     query<ClubStat>(`
       SELECT c.club_id, c.club_name, c.daily_quota::text, c.quota_period, c.is_active,
-        COUNT(m.member_id) FILTER (WHERE m.is_active)::text AS active_count,
+        COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_count,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus >= 0)::text AS on_track,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus < 0)::text AS behind
       FROM clubs c
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
              qh.deficit_surplus::text, qh.cumulative_fans::text
       FROM quota_history qh
       JOIN members m ON m.member_id = qh.member_id
-      JOIN clubs c ON c.club_id = qh.club_id
+      JOIN clubs c ON c.club_id::text = qh.club_id::text
       WHERE c.guild_id::text = ANY($1::text[])
       ORDER BY qh.date DESC, qh.created_at DESC LIMIT 8
     `, [guildIds]).catch(() => []),
