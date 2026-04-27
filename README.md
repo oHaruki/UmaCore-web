@@ -25,7 +25,7 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
 - **Bomb tracker** — live view of active bomb warnings and countdowns
 - **Club settings** — edit quota, period, scrape schedule, and Discord channels without touching the bot
 - **Quota change timeline** — visual month timeline of quota requirement changes; add or remove entries with automatic recalculation
-- **Discord login** — authentication via Discord OAuth so only your server's admins can access the dashboard
+- **Discord login** — authentication via Discord OAuth; users only see and manage clubs for servers where they hold the Administrator permission
 
 ## Setup
 
@@ -58,10 +58,6 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
 
    AUTH_SECRET=                  # generate with: npx auth secret
    NEXTAUTH_URL=http://localhost:3000
-
-   # Comma-separated Discord user IDs that are allowed to log in.
-   # Right-click your username in Discord (Developer Mode on) to copy your ID.
-   ALLOWED_DISCORD_IDS=your_discord_id,other_admin_id
    ```
 
 4. **Set up Discord OAuth**
@@ -69,6 +65,8 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
    - Select your bot application (or create a new one)
    - Under **OAuth2**, add a redirect URI: `http://localhost:3000/api/auth/callback/discord`
    - Copy the Client ID and Client Secret into `.env.local`
+
+   > **Access control is automatic.** Any Discord user can log in, but they will only see clubs that belong to servers where they hold the **Administrator** permission. No allowlist to maintain.
 
 5. **Run the development server**
    ```bash
@@ -135,8 +133,9 @@ src/
 │       └── sync/           # Proxy to bot sync API
 ├── components/            # Shared UI components
 └── lib/
-    ├── auth.ts            # NextAuth config
-    └── db.ts              # PostgreSQL client
+    ├── auth.ts            # NextAuth config (Discord OAuth + guild-based access)
+    ├── db.ts              # PostgreSQL client
+    └── guild-check.ts     # Ownership helper for API routes
 ```
 
 ## Support the Project
