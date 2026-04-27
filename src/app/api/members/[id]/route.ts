@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
 
+const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,12 +21,47 @@ export async function PATCH(
   if (!(await ownsClub(session, memberRow[0].club_id)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const { is_active, manually_deactivated } = await req.json()
+  const body = await req.json()
 
-  await query(
-    `UPDATE members SET is_active = $1, manually_deactivated = $2, updated_at = NOW() WHERE member_id = $3`,
-    [is_active, manually_deactivated ?? !is_active, id]
-  )
+  const allowed = ['is_active', 'manually_deactivated', 'join_date', 'trainer_name'] as const
+  type Allowed = typeof allowed[number]
+
+  const sets: string[] = []
+  const vals: unknown[] = []
+  let i = 1
+
+  for (const key of allowed) {
+    if (key in body) {
+      sets.push(`${key} = $${i++}`)
+      vals.push(body[key as Allowed])
+    }
+  }
+
+  if (sets.length === 0)
+    return NextResponse.json({ error: 'Nothing to update' }, { status: 400 })
+
+  // Validate join_date format if provided
+  if ('join_date' in body) {
+    const d = body.join_date
+    if (d !== null && (!/^\d{4}-\d{2}-\d{2}$/.test(d) || isNaN(Date.parse(d))))
+      return NextResponse.json({ error: 'join_date must be YYYY-MM-DD' }, { status: 400 })
+  }
+
+  sets.push(`updated_at = NOW()`)
+  vals.push(id)
+  await query(`UPDATE members SET ${sets.join(', ')} WHERE member_id = $${i}`, vals)
+
+  // Recalculate quota history when join_date changes since expected_fans depend on it
+  if ('join_date' in body) {
+    try {
+      await fetch(`${BOT_API}/recalculate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ club_id: memberRow[0].club_id }),
+        signal: AbortSignal.timeout(30000),
+      })
+    } catch { /* best-effort */ }
+  }
 
   return NextResponse.json({ ok: true })
 }

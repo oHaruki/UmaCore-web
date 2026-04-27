@@ -1,10 +1,10 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { ownsClub } from '@/lib/guild-check'
-import { notFound } from 'next/navigation'
-import { forbidden } from 'next/navigation'
+import { notFound, forbidden } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import MemberEditPanel from './MemberEditPanel'
 
 type Member = {
   member_id: string
@@ -263,12 +263,14 @@ export default async function MemberProfilePage({
         </table>
       </div>
 
-      {/* Meta */}
-      <div className="flex items-center gap-6 text-xs text-zinc-700 pb-2">
-        {member.join_date && <span>Joined {new Date(member.join_date).toLocaleDateString()}</span>}
-        {member.last_seen && <span>Last seen {new Date(member.last_seen).toLocaleDateString()}</span>}
-        {member.manually_deactivated && <span className="text-amber-700">Manually deactivated</span>}
-      </div>
+      {/* Editable fields */}
+      <MemberEditPanel
+        memberId={member.member_id}
+        initialJoinDate={member.join_date ?? ''}
+        initialTrainerName={member.trainer_name}
+        lastSeen={member.last_seen}
+        manuallyDeactivated={member.manually_deactivated}
+      />
     </div>
   )
 }
