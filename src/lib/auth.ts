@@ -34,7 +34,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
-      session.adminGuildIds = (token.adminGuildIds as string[]) ?? []
+      session.adminGuildIds = Array.isArray(token.adminGuildIds)
+        ? token.adminGuildIds.filter((id): id is string => typeof id === 'string')
+        : []
       return session
     },
   },
