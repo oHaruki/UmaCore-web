@@ -27,6 +27,13 @@ export async function POST(req: NextRequest) {
   if (!club_id || !effective_date || daily_quota == null)
     return NextResponse.json({ error: 'club_id, effective_date, and daily_quota are required' }, { status: 400 })
 
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effective_date) || isNaN(Date.parse(effective_date)))
+    return NextResponse.json({ error: 'effective_date must be a valid YYYY-MM-DD date' }, { status: 400 })
+
+  const quota = Number(daily_quota)
+  if (!Number.isInteger(quota) || quota <= 0 || quota > 1_000_000_000)
+    return NextResponse.json({ error: 'daily_quota must be a positive integer up to 1,000,000,000' }, { status: 400 })
+
   const setBy = (session.user as { name?: string })?.name ?? 'web'
 
   const rows = await query<{ id: string }>(

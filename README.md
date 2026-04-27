@@ -58,6 +58,10 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
 
    AUTH_SECRET=                  # generate with: npx auth secret
    NEXTAUTH_URL=http://localhost:3000
+
+   # Comma-separated Discord user IDs that are allowed to log in.
+   # Right-click your username in Discord (Developer Mode on) to copy your ID.
+   ALLOWED_DISCORD_IDS=your_discord_id,other_admin_id
    ```
 
 4. **Set up Discord OAuth**

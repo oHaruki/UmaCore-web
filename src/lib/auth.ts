@@ -1,6 +1,9 @@
 import NextAuth from 'next-auth'
 import Discord from 'next-auth/providers/discord'
 
+const allowedIds = process.env.ALLOWED_DISCORD_IDS
+  ?.split(',').map(s => s.trim()).filter(Boolean) ?? []
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Discord({
@@ -9,6 +12,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
+    async signIn({ account }) {
+      if (allowedIds.length === 0) return true
+      return allowedIds.includes(account?.providerAccountId ?? '')
+    },
     async session({ session, token }) {
       if (session.user && token.sub) {
         session.user.id = token.sub

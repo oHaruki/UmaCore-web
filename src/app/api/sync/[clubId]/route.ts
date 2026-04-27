@@ -1,12 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+
+// Simple in-memory rate limit: 1 sync per club per 2 minutes.
+// Works for single-instance deployments; use Redis for multi-instance.
+const syncCooldowns = new Map<string, number>()
+const COOLDOWN_MS = 2 * 60 * 1000
 
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ clubId: string }> }
 ) {
+  const session = await auth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { clubId } = await params
+
+  const last = syncCooldowns.get(clubId)
+  if (last && Date.now() - last < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - last)) / 1000)
+    return NextResponse.json({ error: `Sync on cooldown, try again in ${remaining}s` }, { status: 429 })
+  }
+  syncCooldowns.set(clubId, Date.now())
 
   try {
     const res = await fetch(`${BOT_API}/sync`, {
