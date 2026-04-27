@@ -1,5 +1,8 @@
 import { query } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { ownsClub } from '@/lib/guild-check'
 import { notFound } from 'next/navigation'
+import { forbidden } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 
@@ -13,6 +16,14 @@ type Member = {
   manually_deactivated: boolean
   join_date: string | null
   last_seen: string | null
+  daily_quota: string
+  quota_period: string
+}
+
+type UserLink = {
+  discord_user_id: string
+  notify_on_bombs: boolean
+  notify_on_deficit: boolean
 }
 
 type HistoryEntry = {
@@ -38,14 +49,23 @@ export default async function MemberProfilePage({
 }) {
   const { id } = await params
 
+  const session = await auth()
+
   const [member] = await query<Member>(`
     SELECT m.member_id, m.trainer_name, m.trainer_id, m.is_active, m.manually_deactivated,
-           m.join_date::text, m.last_seen::text, c.club_name, c.club_id
+           m.join_date::text, m.last_seen::text, c.club_name, c.club_id,
+           c.daily_quota::text, c.quota_period
     FROM members m JOIN clubs c ON c.club_id = m.club_id
     WHERE m.member_id = $1
   `, [id]).catch(() => [])
 
   if (!member) notFound()
+  if (!(await ownsClub(session!, member.club_id))) forbidden()
+
+  const [userLink] = await query<UserLink>(`
+    SELECT discord_user_id::text, notify_on_bombs, notify_on_deficit
+    FROM user_links WHERE member_id = $1
+  `, [id]).catch(() => [])
 
   const history = await query<HistoryEntry>(`
     SELECT date::text, cumulative_fans::text, expected_fans::text,
@@ -64,13 +84,24 @@ export default async function MemberProfilePage({
   const activeBomb = bombs.find(b => b.is_active)
 
   // Summary stats
-  const total     = history.length
-  const onTrack   = history.filter(h => Number(h.deficit_surplus) >= 0).length
-  const behind    = total - onTrack
-  const latest    = history[history.length - 1]
+  const total      = history.length
+  const onTrack    = history.filter(h => Number(h.deficit_surplus) >= 0).length
+  const behind     = total - onTrack
+  const latest     = history[history.length - 1]
   const avgSurplus = total > 0
     ? Math.round(history.reduce((s, h) => s + Number(h.deficit_surplus), 0) / total)
     : 0
+
+  // Catch-up calculation: how much per day to recover deficit by end of month
+  const periodDays  = { daily: 1, weekly: 7, 'bi-weekly': 14 }[member.quota_period] ?? 1
+  const perDayQuota = Number(member.daily_quota) / periodDays
+  const currentDeficit = latest ? Math.max(0, -Number(latest.deficit_surplus)) : 0
+  const today = new Date()
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
+  const daysRemaining = Math.max(1, daysInMonth - today.getDate())
+  const catchUpPerDay = currentDeficit > 0
+    ? Math.ceil(perDayQuota + currentDeficit / daysRemaining)
+    : null
 
   return (
     <div className="space-y-5">
@@ -97,21 +128,36 @@ export default async function MemberProfilePage({
               </span>
             )}
           </div>
-          <div className="text-right">
+          <div className="text-right space-y-1">
             <p className="text-xs text-zinc-500">Trainer ID: {member.trainer_id}</p>
             <p className="text-xs text-zinc-600">{member.club_name}</p>
+            {userLink ? (
+              <p className="text-xs text-violet-400">
+                Discord linked
+                {userLink.notify_on_bombs || userLink.notify_on_deficit
+                  ? ` · notified on ${[userLink.notify_on_bombs && 'bombs', userLink.notify_on_deficit && 'deficit'].filter(Boolean).join(' & ')}`
+                  : ''}
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-700">No Discord link</p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Stat row */}
-      <div className="grid grid-cols-5 gap-3">
+      <div className="grid grid-cols-6 gap-3">
         {[
           { label: 'Days tracked',  value: String(total) },
           { label: 'Days on track', value: String(onTrack), color: 'text-emerald-400' },
           { label: 'Days behind',   value: String(behind),  color: behind > 0 ? 'text-amber-400' : undefined },
           { label: 'Avg surplus',   value: (avgSurplus >= 0 ? '+' : '') + formatFans(avgSurplus), color: avgSurplus >= 0 ? 'text-emerald-400' : 'text-amber-400' },
           { label: 'Latest fans',   value: latest ? formatFans(Number(latest.cumulative_fans)) : '—' },
+          {
+            label: catchUpPerDay ? 'Need / day to recover' : 'Daily target',
+            value: catchUpPerDay ? formatFans(catchUpPerDay) : formatFans(Math.ceil(perDayQuota)),
+            color: catchUpPerDay ? 'text-amber-400' : 'text-zinc-400',
+          },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
             <p className="text-xs text-zinc-500">{label}</p>

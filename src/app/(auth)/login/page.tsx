@@ -25,60 +25,82 @@ export default function LoginPage() {
       <div className="min-h-screen bg-[#0a0a0f] flex">
 
         {/* Left panel — fixed width, slight surface bg */}
-        <div className="w-[400px] shrink-0 flex flex-col justify-center gap-10 px-10 py-12 bg-[#0d0d14] border-r border-white/5">
+        <div className="w-[400px] shrink-0 flex flex-col px-10 py-12 bg-[#0d0d14] border-r border-white/5">
 
-          {/* Brand */}
-          <div className="fade-up d1 flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"
-              style={{ animation: 'pulse 2.4s ease-in-out infinite' }} />
-            <span className="text-white text-sm font-semibold tracking-tight">UmaCore</span>
-          </div>
+          {/* Main content — grows to fill space, pushing footer down */}
+          <div className="flex-1 flex flex-col justify-center gap-10">
 
-          {/* Login block */}
-          <div className="fade-up d2 space-y-5">
-            <div>
-              <h1 className="text-2xl font-semibold text-white leading-snug">Welcome back</h1>
-              <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">
-                Sign in to manage your club quota, members, and reports.
+            {/* Brand */}
+            <div className="fade-up d1 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-500 shrink-0"
+                style={{ animation: 'pulse 2.4s ease-in-out infinite' }} />
+              <span className="text-white text-sm font-semibold tracking-tight">UmaCore</span>
+            </div>
+
+            {/* Login block */}
+            <div className="fade-up d2 space-y-5">
+              <div>
+                <h1 className="text-2xl font-semibold text-white leading-snug">Welcome back</h1>
+                <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">
+                  Sign in to manage your club quota, members, and reports.
+                </p>
+              </div>
+
+              <button
+                onClick={() => signIn('discord', { callbackUrl: '/dashboard' })}
+                className="w-full flex items-center justify-center gap-2.5 bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-medium py-2.5 rounded-lg transition-colors duration-150"
+              >
+                <DiscordIcon />
+                Continue with Discord
+              </button>
+
+              <p className="text-xs text-zinc-600">
+                Only club administrators can sign in.
               </p>
             </div>
 
-            <button
-              onClick={() => signIn('discord', { callbackUrl: '/dashboard' })}
-              className="w-full flex items-center justify-center gap-2.5 bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-medium py-2.5 rounded-lg transition-colors duration-150"
-            >
-              <DiscordIcon />
-              Continue with Discord
-            </button>
+            {/* Divider */}
+            <div className="fade-up d3 h-px bg-white/5" />
 
-            <p className="text-xs text-zinc-600">
-              Only club administrators can sign in.
-            </p>
-          </div>
-
-          {/* Divider */}
-          <div className="fade-up d3 h-px bg-white/5" />
-
-          {/* Feature list */}
-          <div className="fade-up d4 space-y-3">
-            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">What you get</p>
-            {[
-              ['Quota tracking', 'Daily and monthly across all clubs'],
-              ['Member management', 'Active, inactive, and history'],
-              ['No Discord needed', 'Everything in one dashboard'],
-            ].map(([title, desc]) => (
-              <div key={title} className="flex items-start gap-3">
-                <div className="mt-1.5 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
-                <div>
-                  <p className="text-xs text-zinc-300 font-medium">{title}</p>
-                  <p className="text-xs text-zinc-600">{desc}</p>
+            {/* Feature list */}
+            <div className="fade-up d4 space-y-3">
+              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wider">What you get</p>
+              {[
+                ['Quota tracking', 'Daily and monthly across all clubs'],
+                ['Member management', 'Active, inactive, and history'],
+                ['No Discord needed', 'Everything in one dashboard'],
+              ].map(([title, desc]) => (
+                <div key={title} className="flex items-start gap-3">
+                  <div className="mt-1.5 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
+                  <div>
+                    <p className="text-xs text-zinc-300 font-medium">{title}</p>
+                    <p className="text-xs text-zinc-600">{desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+
           </div>
 
-          {/* Footer */}
-          <p className="fade-up d5 text-xs text-zinc-700">© 2026 UmaCore</p>
+          {/* Footer links — pinned to bottom */}
+          <div className="fade-up d5 flex items-center gap-4 pt-8 border-t border-white/5">
+            <a href="https://discord.gg/f4QZNag9Hv" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              Support
+            </a>
+            <span className="text-zinc-800">·</span>
+            <a href="https://github.com/oHaruki/UmaCore" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              Docs
+            </a>
+            <span className="text-zinc-800">·</span>
+            <a href="https://ko-fi.com/harukidev" target="_blank" rel="noopener noreferrer"
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+              Ko-fi
+            </a>
+            <span className="flex-1" />
+            <p className="text-xs text-zinc-700">© 2026 UmaCore</p>
+          </div>
         </div>
 
         {/* Right — character + floating UI previews */}
@@ -135,6 +157,42 @@ export default function LoginPage() {
           <div className="fade-up d2 absolute top-8 left-20 z-30">
             <p className="text-[11px] text-zinc-600 font-medium">Sakura Chiyono</p>
             <p className="text-[10px] text-zinc-700">Uma Musume</p>
+          </div>
+
+          {/* Speech bubble — character attribution */}
+          <div className="fade-up d5 absolute z-30" style={{ top: '32%', left: '8%' }}>
+            <div className="relative">
+              <a
+                href="https://uma.moe"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block bg-[#111116] border border-white/10 rounded-2xl px-4 py-3 max-w-[190px] hover:border-white/20 transition-colors"
+              >
+                <p className="text-xs text-zinc-300 leading-relaxed">
+                  Thanks to{' '}
+                  <span className="text-violet-400 font-medium">uma.moe</span>
+                  {' '}for providing their API! 🐴
+                </p>
+              </a>
+              {/* Connector line — starts at bubble right edge, goes toward character */}
+              <div className="absolute" style={{
+                top: '50%',
+                left: '100%',
+                width: '160px',
+                height: '1px',
+                background: 'linear-gradient(to right, rgba(255,255,255,0.15), rgba(255,255,255,0.02))',
+                transform: 'translateY(-50%) rotate(-12deg)',
+                transformOrigin: 'left center',
+              }} />
+              {/* Dot at far end — offset accounts for -12deg rotation over 160px */}
+              <div className="absolute rounded-full" style={{
+                top: 'calc(50% - 35px)',
+                left: 'calc(100% + 154px)',
+                width: '4px',
+                height: '4px',
+                background: 'rgba(255,255,255,0.12)',
+              }} />
+            </div>
           </div>
 
         </div>
