@@ -3,8 +3,8 @@ import { NextRequest } from 'next/server'
 
 export const runtime = 'edge'
 
-export async function GET(req: NextRequest) {
-  const { origin } = new URL(req.url)
+export async function GET(_req: NextRequest) {
+  const base = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
   return new ImageResponse(
     (
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
         {/* Horse girl image — right side */}
         <img
-          src={`${origin}/images/UmaViewer_2026-04-26_17-29-26-620.png`}
+          src={`${base}/images/UmaViewer_2026-04-26_17-29-26-620.png`}
           style={{
             position: 'absolute', right: 0, bottom: 0,
             height: '630px', width: 'auto',
