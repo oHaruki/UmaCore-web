@@ -62,7 +62,7 @@ export default async function BombsPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">Bombs</h1>
           <p className="text-xs text-zinc-500 mt-0.5">
@@ -117,6 +117,7 @@ export default async function BombsPage({
 
       {/* Table */}
       <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
@@ -173,6 +174,7 @@ export default async function BombsPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

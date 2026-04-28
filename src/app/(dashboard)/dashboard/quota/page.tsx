@@ -88,7 +88,7 @@ export default async function QuotaPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">Quota History</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{entries.length} entries</p>
@@ -114,7 +114,7 @@ export default async function QuotaPage({
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
           <p className="text-xs text-zinc-500">On track entries</p>
           <p className="mt-1.5 text-xl font-semibold text-emerald-400">{s.on_track}</p>
@@ -156,6 +156,7 @@ export default async function QuotaPage({
 
       {/* Table */}
       <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
@@ -204,6 +205,7 @@ export default async function QuotaPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

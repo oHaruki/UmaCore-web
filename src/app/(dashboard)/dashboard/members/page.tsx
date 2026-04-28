@@ -98,12 +98,12 @@ export default async function MembersPage({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">Members</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{members.length} shown</p>
         </div>
-        <div className="flex items-center gap-3 flex-wrap justify-end">
+        <div className="flex items-center gap-3 flex-wrap">
           {/* Search */}
           <Suspense>
             <MemberSearch />
@@ -138,6 +138,7 @@ export default async function MembersPage({
 
       {/* Table */}
       <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-white/5">
@@ -200,6 +201,7 @@ export default async function MembersPage({
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   )

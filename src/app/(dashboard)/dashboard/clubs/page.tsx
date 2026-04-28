@@ -176,7 +176,7 @@ export default async function ClubOverviewPage({
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
         {[
           { label: 'Active members', value: club.active_members },
           { label: 'On track', value: `${club.on_track} (${compliancePct}%)`, color: 'text-emerald-400' },
@@ -201,8 +201,8 @@ export default async function ClubOverviewPage({
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-5 gap-4">
-        <div className="col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="md:col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <p className="text-sm font-medium text-white">Quota compliance (30d)</p>
             <span className="text-xs text-zinc-500">% of active members on track per day</span>
@@ -218,7 +218,7 @@ export default async function ClubOverviewPage({
           </div>
         </div>
 
-        <div className="col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
+        <div className="md:col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4 shrink-0">
             <p className="text-sm font-medium text-white">Club rank (30d)</p>
             <span className="text-xs text-zinc-500">Lower is better</span>
@@ -236,13 +236,14 @@ export default async function ClubOverviewPage({
       </div>
 
       {/* Member standings + side panels */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {/* Full standings table */}
-        <div className="col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+        <div className="md:col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
           <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
             <p className="text-sm font-medium text-white">Member standings</p>
             <span className="text-xs text-zinc-600">{members.length} active</span>
           </div>
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/5">
@@ -290,10 +291,11 @@ export default async function ClubOverviewPage({
               )}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Side panels */}
-        <div className="col-span-2 space-y-3">
+        <div className="md:col-span-2 space-y-3">
           {/* Bomb stats */}
           <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
             <p className="text-sm font-medium text-white mb-4">Bomb statistics</p>

@@ -68,9 +68,9 @@ export default async function SettingsPage({
         <p className="text-xs text-zinc-500 mt-0.5">Club configuration and management</p>
       </div>
 
-      <div className="flex gap-5 min-h-[600px]">
+      <div className="flex flex-col md:flex-row gap-5 min-h-[600px]">
         {/* Club list */}
-        <div className="w-48 shrink-0">
+        <div className="w-full md:w-48 shrink-0">
           <div className="space-y-0.5">
             {clubs.map(c => (
               <Link

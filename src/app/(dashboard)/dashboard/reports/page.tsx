@@ -120,7 +120,7 @@ export default async function ReportsPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-white">Daily Report</h1>
           <p className="text-xs text-zinc-500 mt-0.5">Quota status snapshot by club</p>

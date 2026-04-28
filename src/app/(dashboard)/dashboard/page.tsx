@@ -102,7 +102,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Global stats */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'Active members', value: totals.members },
           { label: 'On track',       value: totals.onTrack,  color: 'text-emerald-400' },
@@ -156,10 +156,10 @@ export default async function DashboardPage() {
       )}
 
       {/* Main grid */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
 
         {/* Club cards */}
-        <div className="col-span-3 space-y-3">
+        <div className="md:col-span-3 space-y-3">
           {clubStats.map(club => {
             const total   = Number(club.active_count)
             const onTrack = Number(club.on_track)
@@ -209,7 +209,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Recent activity */}
-        <div className="col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
+        <div className="md:col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
           <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
             <p className="text-sm font-medium text-white">Recent activity</p>
             <Link href="/dashboard/quota" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">All →</Link>

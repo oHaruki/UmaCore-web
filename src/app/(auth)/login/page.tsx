@@ -54,7 +54,7 @@ export default async function LoginPage() {
       <div className="min-h-screen bg-[#0a0a0f] flex">
 
         {/* Left panel */}
-        <div className="w-[400px] shrink-0 flex flex-col px-10 py-12 bg-[#0d0d14] border-r border-white/5">
+        <div className="w-full md:w-[400px] shrink-0 flex flex-col px-6 py-10 md:px-10 md:py-12 bg-[#0d0d14] md:border-r border-white/5">
           <div className="flex-1 flex flex-col justify-center gap-10">
 
             {/* Brand */}
@@ -120,7 +120,7 @@ export default async function LoginPage() {
         </div>
 
         {/* Right — character + floating stat cards */}
-        <div className="flex-1 relative overflow-hidden" style={{ backgroundColor: '#0c0a12' }}>
+        <div className="hidden md:flex flex-1 relative overflow-hidden" style={{ backgroundColor: '#0c0a12' }}>
 
           <div className="absolute left-0 top-0 bottom-0 w-16 z-20 pointer-events-none bg-gradient-to-r from-[#0d0d14] to-transparent" />
 
