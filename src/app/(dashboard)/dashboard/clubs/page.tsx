@@ -448,21 +448,25 @@ function RankChart({ data }: { data: RankDay[] }) {
   const plotW = W - pad.left - pad.right
   const plotH = H - pad.top - pad.bottom
 
-  const ranks = data.map(d => Number(d.club_rank))
+  const allRanks = data.map(d => Number(d.club_rank))
+  const sorted = [...allRanks].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 1
+  const filtered = data.filter(d => Number(d.club_rank) <= median * 5)
+  const ranks = filtered.map(d => Number(d.club_rank))
   const minR = Math.min(...ranks)
   const maxR = Math.max(...ranks)
   const range = maxR - minR || 1
 
-  const xOf = (i: number) => pad.left + (i / Math.max(data.length - 1, 1)) * plotW
+  const xOf = (i: number) => pad.left + (i / Math.max(filtered.length - 1, 1)) * plotW
   // lower rank number = better = higher on chart (lower y)
   const yOf = (r: number) => pad.top + ((r - minR) / range) * plotH
 
   const points = ranks.map((r, i) => `${xOf(i)},${yOf(r)}`).join(' ')
 
-  const xStep = Math.max(1, Math.floor(data.length / 4))
-  const lastIdx = data.length - 1
+  const xStep = Math.max(1, Math.floor(filtered.length / 4))
+  const lastIdx = filtered.length - 1
   const prevRegular = Math.floor(lastIdx / xStep) * xStep
-  const xLabelIdxs = data.map((_, i) => i).filter(i =>
+  const xLabelIdxs = filtered.map((_, i) => i).filter(i =>
     i % xStep === 0 || (i === lastIdx && lastIdx !== prevRegular && (lastIdx - prevRegular) * 2 > xStep)
   )
 
@@ -480,14 +484,14 @@ function RankChart({ data }: { data: RankDay[] }) {
       <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" />
 
       <circle
-        cx={xOf(data.length - 1)}
+        cx={xOf(filtered.length - 1)}
         cy={yOf(ranks[ranks.length - 1])}
         r="3" fill="#6366f1"
       />
 
       {xLabelIdxs.map(i => (
         <text key={i} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="#52525b">
-          {new Date(data[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          {new Date(filtered[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </text>
       ))}
     </svg>

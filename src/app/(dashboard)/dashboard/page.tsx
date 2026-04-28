@@ -242,19 +242,22 @@ export default async function DashboardPage() {
 
 function RankSparkline({ data }: { data: number[] }) {
   const W = 200, H = 28
-  const min = Math.min(...data), max = Math.max(...data)
+  const sorted = [...data].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 1
+  const filtered = data.filter(v => v <= median * 5)
+  const min = Math.min(...filtered), max = Math.max(...filtered)
   const range = max - min || 1
   // Rank: lower = better, so invert Y
-  const xOf = (i: number) => (i / Math.max(data.length - 1, 1)) * W
+  const xOf = (i: number) => (i / Math.max(filtered.length - 1, 1)) * W
   const yOf = (v: number) => H - ((max - v) / range) * H
-  const points = data.map((v, i) => `${xOf(i)},${yOf(v)}`).join(' ')
+  const points = filtered.map((v, i) => `${xOf(i)},${yOf(v)}`).join(' ')
 
   return (
     <div>
       <p className="text-[10px] text-zinc-600 mb-1">Club rank (30d) — lower is better</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 28 }}>
         <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinejoin="round" />
-        <circle cx={xOf(data.length - 1)} cy={yOf(data[data.length - 1])} r="2.5" fill="#6366f1" />
+        <circle cx={xOf(filtered.length - 1)} cy={yOf(filtered[filtered.length - 1])} r="2.5" fill="#6366f1" />
       </svg>
     </div>
   )
