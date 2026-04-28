@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
+import { logAudit } from '@/lib/audit'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
 
@@ -14,8 +15,8 @@ export async function PATCH(
 
   const { id } = await params
 
-  const memberRow = await query<{ club_id: string }>(
-    'SELECT club_id FROM members WHERE member_id = $1', [id]
+  const memberRow = await query<{ club_id: string; trainer_name: string }>(
+    'SELECT club_id, trainer_name FROM members WHERE member_id = $1', [id]
   )
   if (!memberRow[0]) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!(await ownsClub(session, memberRow[0].club_id)))
@@ -62,6 +63,21 @@ export async function PATCH(
       })
     } catch { /* best-effort */ }
   }
+
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'unknown'
+  const action = 'is_active' in body
+    ? (body.is_active ? 'member.reactivate' : 'member.deactivate')
+    : 'member.update'
+  const changes: Record<string, unknown> = {}
+  for (const key of allowed) {
+    if (key in body && key !== 'is_active' && key !== 'manually_deactivated') changes[key] = body[key as Allowed]
+  }
+  await logAudit({
+    actorId, actorName, action, entityType: 'member', entityId: id,
+    clubId: memberRow[0].club_id,
+    details: { trainer_name: memberRow[0].trainer_name, ...(Object.keys(changes).length ? { changes } : {}) },
+  })
 
   return NextResponse.json({ ok: true })
 }

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 
 export default function SplashLoader() {
   const [visible, setVisible] = useState(true)
@@ -21,14 +20,14 @@ export default function SplashLoader() {
         fading ? 'opacity-0 pointer-events-none' : 'opacity-100'
       }`}
     >
-      <Image
-        src="/images/UmaViewer_2026-04-26_18-23-03-371.gif"
-        alt="Loading"
+      <video
+        autoPlay muted loop playsInline
         width={300}
         height={300}
-        loading="eager"
-        unoptimized
-      />
+        style={{ width: 300, height: 300, objectFit: 'cover' }}
+      >
+        <source src="/images/sakura_splash.webm" type="video/webm" />
+      </video>
       <p className="mt-4 text-xs font-semibold tracking-[0.3em] text-zinc-500 uppercase">
         UmaCore
       </p>

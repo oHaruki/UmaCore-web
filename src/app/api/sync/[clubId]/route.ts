@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { ownsClub } from '@/lib/guild-check'
+import { logAudit } from '@/lib/audit'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
 
@@ -28,6 +29,9 @@ export async function POST(
   }
   syncCooldowns.set(clubId, Date.now())
 
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'unknown'
+
   try {
     const res = await fetch(`${BOT_API}/sync`, {
       method: 'POST',
@@ -38,6 +42,9 @@ export async function POST(
     const text = await res.text()
     let data: Record<string, unknown> = {}
     try { if (text) data = JSON.parse(text) } catch { /* non-JSON */ }
+
+    await logAudit({ actorId, actorName, action: 'sync.trigger', entityType: 'club', entityId: clubId, clubId, details: { success: res.ok, ...( res.ok ? { updated_members: data.updated_members, backfilled: data.backfilled } : { error: data.error }) } })
+
     return NextResponse.json(
       res.ok ? { success: true, ...data } : { error: data.error ?? 'Bot error' },
       { status: res.ok ? 200 : res.status }
@@ -46,12 +53,14 @@ export async function POST(
     const msg = String(err)
     // ECONNREFUSED = bot is not running at all
     if (msg.includes('ECONNREFUSED') || msg.includes('connect ECONNREFUSED')) {
+      await logAudit({ actorId, actorName, action: 'sync.trigger', entityType: 'club', entityId: clubId, clubId, details: { success: false, error: 'Bot API not running' } })
       return NextResponse.json({ error: 'Bot API is not running' }, { status: 502 })
     }
     // Any other error (socket hang up, incomplete response, timeout after processing)
     // means the bot likely processed the sync but the HTTP response was dropped.
     // Return success so router.refresh() picks up the updated data.
     console.warn('[sync proxy] response error (data likely written):', msg)
+    await logAudit({ actorId, actorName, action: 'sync.trigger', entityType: 'club', entityId: clubId, clubId, details: { success: true, note: 'response incomplete' } })
     return NextResponse.json({ success: true, updated_members: 0, backfilled: 0, note: 'response incomplete' })
   }
 }

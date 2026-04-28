@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
+import { logAudit } from '@/lib/audit'
 
 const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
 
@@ -38,16 +39,19 @@ export async function POST(req: NextRequest) {
   if (!(await ownsClub(session, club_id)))
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const setBy = (session.user as { name?: string })?.name ?? 'web'
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'web'
 
   const rows = await query<{ id: string }>(
     `INSERT INTO quota_requirements (club_id, effective_date, daily_quota, set_by)
      VALUES ($1, $2, $3, $4)
      RETURNING id::text`,
-    [club_id, effective_date, daily_quota, setBy]
+    [club_id, effective_date, daily_quota, actorName]
   )
 
   await triggerRecalculate(club_id)
+  await logAudit({ actorId, actorName, action: 'quota_req.create', entityType: 'quota_requirement', entityId: rows[0]?.id, clubId: club_id, details: { effective_date, daily_quota: quota } })
+
   return NextResponse.json({ ok: true, id: rows[0]?.id })
 }
 
@@ -69,5 +73,10 @@ export async function DELETE(req: NextRequest) {
   )
 
   await triggerRecalculate(club_id)
+
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'unknown'
+  await logAudit({ actorId, actorName, action: 'quota_req.delete', entityType: 'quota_requirement', entityId: id, clubId: club_id })
+
   return NextResponse.json({ ok: true })
 }

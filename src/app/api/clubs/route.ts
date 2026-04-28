@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
+import { logAudit } from '@/lib/audit'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -46,5 +47,10 @@ export async function POST(req: NextRequest) {
     bomb_countdown_days ?? 7,
   ])
 
-  return NextResponse.json({ club_id: result[0].club_id })
+  const clubId = result[0].club_id
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'unknown'
+  await logAudit({ actorId, actorName, action: 'club.create', entityType: 'club', entityId: clubId, clubId, details: { club_name, daily_quota: Number(daily_quota), quota_period: quota_period || 'daily' } })
+
+  return NextResponse.json({ club_id: clubId })
 }

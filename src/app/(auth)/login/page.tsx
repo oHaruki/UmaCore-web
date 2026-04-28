@@ -102,17 +102,20 @@ export default async function LoginPage() {
           </div>
 
           {/* Footer */}
-          <div className="fade-up d5 flex items-center gap-4 pt-8 border-t border-white/5">
+          <div className="fade-up d5 flex items-center gap-3 pt-8 border-t border-white/5">
             <a href="https://discord.gg/f4QZNag9Hv" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Support</a>
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors whitespace-nowrap">Support</a>
             <span className="text-zinc-800">·</span>
             <a href="https://github.com/oHaruki/UmaCore" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Docs</a>
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors whitespace-nowrap">Docs</a>
             <span className="text-zinc-800">·</span>
             <a href="https://ko-fi.com/harukidev" target="_blank" rel="noopener noreferrer"
-              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors">Ko-fi</a>
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors whitespace-nowrap">Ko-fi</a>
+            <span className="text-zinc-800">·</span>
+            <a href="/privacy"
+              className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors whitespace-nowrap">Privacy</a>
             <span className="flex-1" />
-            <p className="text-xs text-zinc-700">© 2026 UmaCore</p>
+            <p className="text-xs text-zinc-700 whitespace-nowrap">© 2026 UmaCore</p>
           </div>
         </div>
 
@@ -121,13 +124,13 @@ export default async function LoginPage() {
 
           <div className="absolute left-0 top-0 bottom-0 w-16 z-20 pointer-events-none bg-gradient-to-r from-[#0d0d14] to-transparent" />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/UmaViewer_2026-04-26_17-51-01-477.gif"
-            alt="Sakura Chiyono"
+          <video
+            autoPlay muted loop playsInline
             className="fade-up d3 absolute inset-0"
             style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 15%' }}
-          />
+          >
+            <source src="/images/sakura_login.webm" type="video/webm" />
+          </video>
 
           {/* Active clubs */}
           <div className="fade-up d2 absolute top-8 right-8 z-30 bg-[#111116] border border-white/8 rounded-lg px-3.5 py-3 min-w-[160px]">

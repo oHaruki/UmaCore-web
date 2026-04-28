@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
+import { logAudit } from '@/lib/audit'
 
 export async function PATCH(
   req: NextRequest,
@@ -21,11 +22,13 @@ export async function PATCH(
   const sets: string[] = []
   const vals: unknown[] = []
   let i = 1
+  const changes: Record<string, unknown> = {}
 
   for (const key of allowed) {
     if (key in body) {
       sets.push(`${key} = $${i++}`)
       vals.push(body[key])
+      changes[key] = body[key]
     }
   }
 
@@ -34,5 +37,10 @@ export async function PATCH(
   sets.push(`updated_at = NOW()`)
   vals.push(id)
   await query(`UPDATE clubs SET ${sets.join(', ')} WHERE club_id = $${i}`, vals)
+
+  const actorId = (session.user as { id?: string })?.id ?? 'unknown'
+  const actorName = (session.user as { name?: string })?.name ?? 'unknown'
+  await logAudit({ actorId, actorName, action: 'club.update', entityType: 'club', entityId: id, clubId: id, details: { changes } })
+
   return NextResponse.json({ ok: true })
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const nav = [
@@ -13,7 +13,8 @@ const nav = [
   { label: 'Reports',       href: '/dashboard/reports',  icon: FileBarChart2 },
   { label: 'Quota History', href: '/dashboard/quota',    icon: ScrollText },
   { label: 'Bombs',         href: '/dashboard/bombs',    icon: Bomb },
-  { label: 'Settings',      href: '/dashboard/settings', icon: Settings },
+  { label: 'Settings',      href: '/dashboard/settings',  icon: Settings },
+  { label: 'Audit Log',    href: '/dashboard/audit-log', icon: ClipboardList },
 ]
 
 export default function Sidebar() {
