@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import Link from 'next/link'
 
 type Entry = {
   trainer_name: string
@@ -98,16 +99,16 @@ export default async function QuotaPage({
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-600">Club</span>
           <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <a href={`?range=${range}${trainer ? `&trainer=${trainer}` : ''}`}
+            <Link href={`?range=${range}${trainer ? `&trainer=${trainer}` : ''}`}
               className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
               All
-            </a>
+            </Link>
             {clubs.map((c) => (
-              <a key={c.club_id}
+              <Link key={c.club_id}
                 href={`?range=${range}&club=${c.club_id}${trainer ? `&trainer=${trainer}` : ''}`}
                 className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
                 {c.club_name}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -139,17 +140,17 @@ export default async function QuotaPage({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
           {RANGES.map((r) => (
-            <a key={r.value}
+            <Link key={r.value}
               href={`?range=${r.value}${club ? `&club=${club}` : ''}${trainer ? `&trainer=${trainer}` : ''}`}
               className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${range === r.value ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
               {r.label}
-            </a>
+            </Link>
           ))}
         </div>
         {trainer && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0d0d14] border border-white/5 rounded-lg">
             <span className="text-xs text-zinc-400">Trainer: {entries[0]?.trainer_name ?? trainer}</span>
-            <a href={`?range=${range}${club ? `&club=${club}` : ''}`} className="text-xs text-zinc-600 hover:text-zinc-400">×</a>
+            <Link href={`?range=${range}${club ? `&club=${club}` : ''}`} className="text-xs text-zinc-600 hover:text-zinc-400">×</Link>
           </div>
         )}
       </div>

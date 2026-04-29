@@ -182,7 +182,7 @@ export default async function LoginPage() {
 
           {/* Character label */}
           <div className="fade-up d2 absolute top-8 left-20 z-30">
-            <p className="text-[11px] text-zinc-600 font-medium">Sakura Chiyono</p>
+            <p className="text-[11px] text-zinc-600 font-medium">Sakura Chiyono O</p>
             <p className="text-[10px] text-zinc-700">Uma Musume</p>
           </div>
 

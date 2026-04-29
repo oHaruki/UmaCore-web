@@ -111,12 +111,12 @@ export default async function MembersPage({
 
           {/* Club filter */}
           <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <a href={clubHref()} className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>All</a>
+            <Link href={clubHref()} className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>All</Link>
             {clubs.map(c => (
-              <a key={c.club_id} href={clubHref(c.club_id)}
+              <Link key={c.club_id} href={clubHref(c.club_id)}
                 className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
                 {c.club_name}
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -127,12 +127,12 @@ export default async function MembersPage({
       {/* Status tabs */}
       <div className="flex items-center border-b border-white/5">
         {tabs.map(tab => (
-          <a key={tab.label} href={tabHref(tab.value)}
+          <Link key={tab.label} href={tabHref(tab.value)}
             className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
               (filter ?? undefined) === tab.value ? 'border-violet-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}>
             {tab.label} <span className="text-zinc-600">{tab.count}</span>
-          </a>
+          </Link>
         ))}
       </div>
 

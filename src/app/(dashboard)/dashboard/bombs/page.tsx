@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import Link from 'next/link'
 
 type Bomb = {
   bomb_id: string
@@ -74,15 +75,15 @@ export default async function BombsPage({
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-600">Club</span>
           <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <a href={`?tab=${tab}`}
+            <Link href={`?tab=${tab}`}
               className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
               All
-            </a>
+            </Link>
             {clubs.map(c => (
-              <a key={c.club_id} href={`?tab=${tab}&club=${c.club_id}`}
+              <Link key={c.club_id} href={`?tab=${tab}&club=${c.club_id}`}
                 className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
                 {c.club_name}
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -105,13 +106,13 @@ export default async function BombsPage({
           { label: 'Active',   value: 'active',   count: activeCount },
           { label: 'Resolved', value: 'resolved', count: inactiveCount },
         ].map(t => (
-          <a key={t.value}
+          <Link key={t.value}
             href={`?tab=${t.value}${club ? `&club=${club}` : ''}`}
             className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
               tab === t.value ? 'border-violet-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}>
             {t.label} <span className="text-zinc-600">{t.count}</span>
-          </a>
+          </Link>
         ))}
       </div>
 

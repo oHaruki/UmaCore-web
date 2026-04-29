@@ -7,6 +7,11 @@ export default function SplashLoader() {
   const [fading, setFading] = useState(false)
 
   useEffect(() => {
+    if (sessionStorage.getItem('splashShown')) {
+      setVisible(false)
+      return
+    }
+    sessionStorage.setItem('splashShown', '1')
     const t1 = setTimeout(() => setFading(true), 1500)
     const t2 = setTimeout(() => setVisible(false), 2000)
     return () => { clearTimeout(t1); clearTimeout(t2) }
