@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const nav = [
@@ -16,6 +16,7 @@ const nav = [
   { label: 'Bombs',         href: '/dashboard/bombs',    icon: Bomb },
   { label: 'Settings',      href: '/dashboard/settings', icon: Settings },
   { label: 'Audit Log',     href: '/dashboard/audit-log', icon: ClipboardList },
+  { label: 'Guide',         href: '/dashboard/guide',     icon: BookOpen },
 ]
 
 export default function Sidebar() {

@@ -6,11 +6,28 @@ import type { Club, QuotaReq } from './page'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
+type SetupState = {
+  scrape_url: string | null
+  circle_id: string | null
+  report_channel_id: string | null
+  alert_channel_id: string | null
+  monthly_info_channel_id: string | null
+}
+
 export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHistory: QuotaReq[] }) {
   // Lift boolean states so UI reflects changes immediately without page refresh
   const [isActive, setIsActive]         = useState(club.is_active)
   const [bombsEnabled, setBombsEnabled] = useState(club.bombs_enabled)
   const [status, setStatus]             = useState<Record<string, SaveStatus>>({})
+
+  // Track setup-critical fields reactively so the checklist updates as user fills them in
+  const [setup, setSetup] = useState<SetupState>({
+    scrape_url:            club.scrape_url,
+    circle_id:             club.circle_id,
+    report_channel_id:     club.report_channel_id,
+    alert_channel_id:      club.alert_channel_id,
+    monthly_info_channel_id: club.monthly_info_channel_id,
+  })
 
   const save = useCallback(async (fields: Record<string, unknown>, key: string) => {
     setStatus(s => ({ ...s, [key]: 'saving' }))
@@ -50,6 +67,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         />
       </div>
 
+      {/* Setup checklist */}
+      <SetupChecklist setup={setup} />
+
       {/* Identity */}
       <Section title="Identity">
         <div className="grid grid-cols-2 gap-4">
@@ -57,13 +77,13 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             label="Scrape URL"
             value={club.scrape_url ?? ''}
             savedStatus={fs('scrape_url')}
-            onSave={v => save({ scrape_url: v || null }, 'scrape_url')}
+            onSave={v => { const val = v || null; setSetup(s => ({ ...s, scrape_url: val })); save({ scrape_url: val }, 'scrape_url') }}
           />
           <TextField
             label="Circle ID"
             value={club.circle_id ?? ''}
             savedStatus={fs('circle_id')}
-            onSave={v => save({ circle_id: v || null }, 'circle_id')}
+            onSave={v => { const val = v || null; setSetup(s => ({ ...s, circle_id: val })); save({ circle_id: val }, 'circle_id') }}
           />
         </div>
         <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
@@ -103,6 +123,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             value={club.scrape_time}
             savedStatus={fs('scrape_time')}
             onSave={v => save({ scrape_time: v }, 'scrape_time')}
+            hint="Recommended: 18:00 — uma.moe refreshes data around this time"
           />
         </div>
       </Section>
@@ -150,24 +171,24 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="space-y-4">
           <ChannelField
             label="Report channel"
-            description="Daily quota reports are posted here"
+            description="Daily quota reports are posted here — required for automatic scraping"
             value={club.report_channel_id}
             savedStatus={fs('report_channel_id')}
-            onSave={v => save({ report_channel_id: v || null }, 'report_channel_id')}
+            onSave={v => { const val = v || null; setSetup(s => ({ ...s, report_channel_id: val })); save({ report_channel_id: val }, 'report_channel_id') }}
           />
           <ChannelField
             label="Alert channel"
             description="Bomb activations and kick alerts"
             value={club.alert_channel_id}
             savedStatus={fs('alert_channel_id')}
-            onSave={v => save({ alert_channel_id: v || null }, 'alert_channel_id')}
+            onSave={v => { const val = v || null; setSetup(s => ({ ...s, alert_channel_id: val })); save({ alert_channel_id: val }, 'alert_channel_id') }}
           />
           <ChannelField
             label="Monthly info channel"
             description="Monthly summary board is posted and updated here"
             value={club.monthly_info_channel_id}
             savedStatus={fs('monthly_info_channel_id')}
-            onSave={v => save({ monthly_info_channel_id: v || null }, 'monthly_info_channel_id')}
+            onSave={v => { const val = v || null; setSetup(s => ({ ...s, monthly_info_channel_id: val })); save({ monthly_info_channel_id: val }, 'monthly_info_channel_id') }}
           />
         </div>
       </Section>
@@ -374,6 +395,122 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
   )
 }
 
+// ── Flow diagram helpers ───────────────────────────────────────
+function FlowStep({ label, sub, muted }: { label: string; sub: string; muted?: boolean }) {
+  return (
+    <div className={`flex flex-col items-center px-2 py-1 rounded bg-white/5 ${muted ? 'opacity-50' : ''}`}>
+      <span className="text-zinc-300 font-medium leading-tight">{label}</span>
+      <span className="text-zinc-600 leading-tight">{sub}</span>
+    </div>
+  )
+}
+function FlowArrow() {
+  return <span className="text-zinc-700 shrink-0">→</span>
+}
+
+// ── Setup checklist ────────────────────────────────────────────
+function SetupChecklist({ setup }: { setup: SetupState }) {
+  const hasScrapeSrc = !!(setup.scrape_url || setup.circle_id)
+  const hasReport    = !!setup.report_channel_id
+  const hasAlert     = !!setup.alert_channel_id
+  const hasMonthly   = !!setup.monthly_info_channel_id
+
+  const items = [
+    {
+      done: hasScrapeSrc,
+      label: 'Scrape URL or Circle ID',
+      detail: 'The Uma.moe circle to pull fan data from. Either field works — set whichever you have.',
+      critical: true,
+    },
+    {
+      done: hasReport,
+      label: 'Report channel',
+      detail: 'Where daily quota reports are posted. The bot will not run at all if this is missing.',
+      critical: true,
+    },
+    {
+      done: hasAlert,
+      label: 'Alert channel',
+      detail: 'Where bomb warnings and kick alerts go. Can be the same as the report channel.',
+      critical: false,
+    },
+    {
+      done: hasMonthly,
+      label: 'Monthly info channel',
+      detail: 'Where the monthly leaderboard is posted. Leave blank to skip monthly summaries.',
+      critical: false,
+    },
+  ]
+
+  if (items.every(i => i.done)) return null
+
+  const hasCriticalGap = items.some(i => i.critical && !i.done)
+
+  return (
+    <div className={`rounded-lg border ${hasCriticalGap ? 'bg-red-500/5 border-red-500/20' : 'bg-amber-500/5 border-amber-500/15'}`}>
+
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          <p className={`text-xs font-medium ${hasCriticalGap ? 'text-red-400' : 'text-amber-400'}`}>
+            Setup incomplete
+          </p>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${hasCriticalGap ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+            {items.filter(i => !i.done).length} remaining
+          </span>
+        </div>
+
+        {/* Daily flow */}
+        <div className="mt-3 flex items-center gap-1.5 text-[10px]">
+          <FlowStep label="Uma.moe" sub="fan data" />
+          <FlowArrow />
+          <FlowStep label="Quota check" sub="per member" />
+          <FlowArrow />
+          <FlowStep label="Discord report" sub="report channel" />
+          <FlowArrow />
+          <FlowStep label="Bomb system" sub="if enabled" muted />
+        </div>
+
+        <div className="mt-3 space-y-1.5">
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            The bot runs once daily at your configured scrape time. It pulls each member&apos;s fan count from Uma.moe, checks it against their quota, and posts a report to Discord.
+          </p>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            Members who fall behind build up &ldquo;days behind.&rdquo; Once they hit the trigger threshold a bomb starts — they have a set number of days to recover before being flagged for removal.
+          </p>
+          <p className="text-xs text-zinc-600 leading-relaxed">
+            To get a channel ID: enable Developer Mode in Discord (<span className="text-zinc-500">Settings → Advanced</span>), then right-click any channel → <span className="text-zinc-500">Copy Channel ID</span>.
+          </p>
+        </div>
+      </div>
+
+      {/* Checklist */}
+      <div className="px-5 py-3.5 space-y-3">
+        {items.map(item => (
+          <div key={item.label} className="flex items-start gap-3">
+            <span className={`mt-px text-xs w-3 shrink-0 leading-4 ${item.done ? 'text-emerald-500' : item.critical ? 'text-red-400' : 'text-zinc-600'}`}>
+              {item.done ? '✓' : item.critical ? '!' : '·'}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-baseline gap-2">
+                <span className={`text-xs font-medium ${item.done ? 'text-zinc-600 line-through decoration-zinc-700' : 'text-zinc-200'}`}>
+                  {item.label}
+                </span>
+                {!item.done && item.critical && (
+                  <span className="text-[10px] font-medium text-red-400">required</span>
+                )}
+              </div>
+              {!item.done && (
+                <p className="text-[10px] text-zinc-500 mt-0.5">{item.detail}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Section ────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -473,8 +610,8 @@ function NumberField({ label, value, onSave, hint, savedStatus }: {
 }
 
 // ── Time field (auto-save on blur) ────────────────────────────
-function TimeField({ label, value, onSave, savedStatus }: {
-  label: string; value: string
+function TimeField({ label, value, onSave, savedStatus, hint }: {
+  label: string; value: string; hint?: string
   onSave: (v: string) => void
   savedStatus: SaveStatus
 }) {
@@ -493,6 +630,7 @@ function TimeField({ label, value, onSave, savedStatus }: {
         onBlur={() => { if (local !== initial) onSave(local + ':00') }}
         className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
       />
+      {hint && <p className="text-[10px] text-zinc-600 mt-1">{hint}</p>}
     </div>
   )
 }

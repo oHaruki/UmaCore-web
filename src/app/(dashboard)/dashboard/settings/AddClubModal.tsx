@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { signIn } from 'next-auth/react'
 
 const PERIODS = [
   { value: 'daily',    label: 'Daily' },
@@ -9,7 +10,7 @@ const PERIODS = [
   { value: 'bi-weekly', label: 'Bi-weekly' },
 ]
 
-export default function AddClubButton() {
+export default function AddClubButton({ adminGuilds }: { adminGuilds: { id: string; name: string }[] }) {
   const [open, setOpen]   = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError]  = useState<string | null>(null)
@@ -84,9 +85,42 @@ export default function AddClubButton() {
                   <input required value={form.club_name} onChange={e => set('club_name', e.target.value)}
                     placeholder="e.g. Turfcore" className={inputCls} />
                 </Field>
-                <Field label="Discord guild ID *">
-                  <input required value={form.guild_id} onChange={e => set('guild_id', e.target.value)}
-                    placeholder="Server ID" className={inputCls + ' font-mono text-xs'} />
+                <Field label="Discord server *">
+                  <select
+                    required
+                    value={form.guild_id}
+                    onChange={e => set('guild_id', e.target.value)}
+                    className={inputCls}
+                  >
+                    <option value="" disabled>Select a server</option>
+                    {adminGuilds.map(g => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  {adminGuilds.length === 0 && (
+                    <p className="mt-1.5 text-[10px] text-zinc-600">
+                      No servers found.{' '}
+                      <button
+                        type="button"
+                        onClick={() => signIn('discord', { callbackUrl: '/dashboard/settings' })}
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        Refresh server list
+                      </button>
+                    </p>
+                  )}
+                  {adminGuilds.length > 0 && (
+                    <p className="mt-1.5 text-[10px] text-zinc-600">
+                      Server missing?{' '}
+                      <button
+                        type="button"
+                        onClick={() => signIn('discord', { callbackUrl: '/dashboard/settings' })}
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        Refresh server list
+                      </button>
+                    </p>
+                  )}
                 </Field>
               </div>
 

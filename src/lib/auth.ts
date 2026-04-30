@@ -20,12 +20,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const res = await fetch('https://discord.com/api/users/@me/guilds', {
             headers: { Authorization: `Bearer ${account.access_token}` },
           })
-          const guilds: Array<{ id: string; permissions: string }> = await res.json()
-          token.adminGuildIds = guilds
+          const guilds: Array<{ id: string; name: string; permissions: string }> = await res.json()
+          token.adminGuilds = guilds
             .filter(g => (Number(g.permissions) & ADMINISTRATOR) === ADMINISTRATOR)
-            .map(g => g.id)
+            .map(g => ({ id: g.id, name: g.name }))
         } catch {
-          token.adminGuildIds = []
+          token.adminGuilds = []
         }
       }
       return token
@@ -34,9 +34,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.sub) {
         session.user.id = token.sub
       }
-      session.adminGuildIds = Array.isArray(token.adminGuildIds)
-        ? token.adminGuildIds.filter((id): id is string => typeof id === 'string')
+      const guilds = Array.isArray(token.adminGuilds)
+        ? token.adminGuilds.filter((g): g is { id: string; name: string } =>
+            typeof g === 'object' && g !== null && typeof g.id === 'string' && typeof g.name === 'string'
+          )
         : []
+      session.adminGuilds = guilds
+      session.adminGuildIds = guilds.map(g => g.id)
       return session
     },
   },

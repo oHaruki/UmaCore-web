@@ -2,6 +2,7 @@ import { DefaultSession } from 'next-auth'
 
 declare module 'next-auth' {
   interface Session {
+    adminGuilds: { id: string; name: string }[]
     adminGuildIds: string[]
     user: DefaultSession['user'] & { id: string }
   }
@@ -9,6 +10,6 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT {
-    adminGuildIds?: string[]
+    adminGuilds?: { id: string; name: string }[]
   }
 }

@@ -5,9 +5,21 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.2',
+    date: 'Apr 30, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Guide page — bot scenario reference covering daily scrape flow, new members, bomb lifecycle, monthly resets, and quota changes' },
+      { type: 'feat',    text: 'Setup checklist in Settings — live card that shows exactly what is missing before the bot can run, with per-field explanations' },
+      { type: 'improve', text: 'Add Club modal now shows a Discord server name dropdown instead of requiring you to paste a raw guild ID' },
+      { type: 'improve', text: 'Club list in Settings shows an amber badge on any club with incomplete critical configuration' },
+      { type: 'improve', text: 'Scrape time field now hints that 18:00 Europe/Amsterdam is recommended (when Uma.moe refreshes data)' },
+    ],
+  },
+  {
     version: '1.1',
     date: 'Apr 28, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Club Overview page — per-club quota health, rank sparklines, and member breakdown' },
       { type: 'feat',    text: 'Member edit panel — update trainer name and status inline' },

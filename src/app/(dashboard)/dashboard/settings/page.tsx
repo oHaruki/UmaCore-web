@@ -39,6 +39,7 @@ export default async function SettingsPage({
 
   const session = await auth()
   const guildIds = session?.adminGuildIds ?? []
+  const adminGuilds = session?.adminGuilds ?? []
 
   const clubs = await query<Club>(`
     SELECT club_id, club_name, daily_quota::text, quota_period,
@@ -72,22 +73,28 @@ export default async function SettingsPage({
         {/* Club list */}
         <div className="w-full md:w-48 shrink-0">
           <div className="space-y-0.5">
-            {clubs.map(c => (
-              <Link
-                key={c.club_id}
-                href={`?club=${c.club_id}`}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  selected?.club_id === c.club_id
-                    ? 'bg-violet-600/15 text-white'
-                    : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                <span className="truncate text-sm">{c.club_name}</span>
-              </Link>
-            ))}
+            {clubs.map(c => {
+              const needsSetup = !c.report_channel_id || (!c.scrape_url && !c.circle_id)
+              return (
+                <Link
+                  key={c.club_id}
+                  href={`?club=${c.club_id}`}
+                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    selected?.club_id === c.club_id
+                      ? 'bg-violet-600/15 text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
+                  <span className="truncate text-sm flex-1 min-w-0">{c.club_name}</span>
+                  {needsSetup && (
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" title="Setup incomplete" />
+                  )}
+                </Link>
+              )
+            })}
           </div>
-          <AddClubButton />
+          <AddClubButton adminGuilds={adminGuilds} />
         </div>
 
         {/* Detail panel */}
