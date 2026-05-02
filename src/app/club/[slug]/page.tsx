@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 
 // ── Types ──────────────────────────────────────────────────────
 type PublicClub = {
+  club_id: string
   club_name: string
   daily_quota: string
   quota_period: string
@@ -24,11 +25,11 @@ type RankRow     = { club_rank: number | null }
 
 // ── Metadata ───────────────────────────────────────────────────
 export async function generateMetadata(
-  { params }: { params: Promise<{ clubId: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
-  const { clubId } = await params
+  const { slug } = await params
   const club = await queryOne<{ club_name: string; public_enabled: boolean }>(
-    `SELECT club_name, public_enabled FROM clubs WHERE club_id = $1`, [clubId]
+    `SELECT club_name, public_enabled FROM clubs WHERE public_slug = $1`, [slug]
   ).catch(() => null)
   if (!club?.public_enabled) return { title: 'UmaCore' }
   return { title: `${club.club_name} — UmaCore` }
@@ -36,16 +37,18 @@ export async function generateMetadata(
 
 // ── Page ───────────────────────────────────────────────────────
 export default async function PublicClubPage(
-  { params }: { params: Promise<{ clubId: string }> }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { clubId } = await params
+  const { slug } = await params
 
   const club = await queryOne<PublicClub>(`
-    SELECT club_name, daily_quota::text, quota_period, bombs_enabled, public_enabled
-    FROM clubs WHERE club_id = $1
-  `, [clubId]).catch(() => null)
+    SELECT club_id::text, club_name, daily_quota::text, quota_period, bombs_enabled, public_enabled
+    FROM clubs WHERE public_slug = $1
+  `, [slug]).catch(() => null)
 
   if (!club || !club.public_enabled) notFound()
+
+  const { club_id } = club
 
   const [members, dateRows, rankRows] = await Promise.all([
     query<PublicMember>(`
@@ -67,15 +70,15 @@ export default async function PublicClubPage(
       LEFT JOIN bombs b ON b.member_id = m.member_id AND b.is_active = true
       WHERE m.club_id = $1 AND m.is_active = true
       ORDER BY COALESCE(lat.deficit_surplus, -999999999999) DESC
-    `, [clubId]),
+    `, [club_id]),
     query<LatestDate>(
       `SELECT MAX(date)::text AS latest_date, MAX(created_at)::text AS latest_scraped_at
        FROM quota_history WHERE club_id = $1`,
-      [clubId]
+      [club_id]
     ),
     query<RankRow>(
       `SELECT club_rank FROM club_rank_history WHERE club_id = $1 ORDER BY date DESC LIMIT 2`,
-      [clubId]
+      [club_id]
     ),
   ]).catch(() => [[], [], []] as [PublicMember[], LatestDate[], RankRow[]])
 

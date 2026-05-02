@@ -217,11 +217,11 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
           {publicEnabled && (
             <div className="flex items-center gap-2 bg-[#111118] border border-white/5 rounded px-3 py-2.5">
               <span className="text-xs text-zinc-500 font-mono flex-1 min-w-0 truncate">
-                /club/{club.club_id}
+                /club/{club.public_slug}
               </span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/club/${club.club_id}`)
+                  navigator.clipboard.writeText(`${window.location.origin}/club/${club.public_slug}`)
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }}
