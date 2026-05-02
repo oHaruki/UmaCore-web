@@ -16,9 +16,11 @@ type SetupState = {
 
 export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHistory: QuotaReq[] }) {
   // Lift boolean states so UI reflects changes immediately without page refresh
-  const [isActive, setIsActive]         = useState(club.is_active)
-  const [bombsEnabled, setBombsEnabled] = useState(club.bombs_enabled)
-  const [status, setStatus]             = useState<Record<string, SaveStatus>>({})
+  const [isActive, setIsActive]           = useState(club.is_active)
+  const [bombsEnabled, setBombsEnabled]   = useState(club.bombs_enabled)
+  const [publicEnabled, setPublicEnabled] = useState(club.public_enabled)
+  const [status, setStatus]               = useState<Record<string, SaveStatus>>({})
+  const [copied, setCopied]               = useState(false)
 
   // Track setup-critical fields reactively so the checklist updates as user fills them in
   const [setup, setSetup] = useState<SetupState>({
@@ -190,6 +192,45 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             savedStatus={fs('monthly_info_channel_id')}
             onSave={v => { const val = v || null; setSetup(s => ({ ...s, monthly_info_channel_id: val })); save({ monthly_info_channel_id: val }, 'monthly_info_channel_id') }}
           />
+        </div>
+      </Section>
+
+      {/* Public sharing */}
+      <Section title="Public sharing">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-zinc-300">Public dashboard</p>
+              <p className="text-xs text-zinc-600 mt-0.5">
+                Share a read-only link showing member quota status — no login required
+              </p>
+            </div>
+            <Toggle
+              on={publicEnabled}
+              label={publicEnabled ? 'Enabled' : 'Disabled'}
+              saving={fs('public_enabled') === 'saving'}
+              onChange={v => { setPublicEnabled(v); save({ public_enabled: v }, 'public_enabled') }}
+              savedStatus={fs('public_enabled')}
+            />
+          </div>
+
+          {publicEnabled && (
+            <div className="flex items-center gap-2 bg-[#111118] border border-white/5 rounded px-3 py-2.5">
+              <span className="text-xs text-zinc-500 font-mono flex-1 min-w-0 truncate">
+                /club/{club.club_id}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/club/${club.club_id}`)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="text-[11px] text-zinc-500 hover:text-white transition-colors shrink-0 font-medium"
+              >
+                {copied ? 'Copied!' : 'Copy link'}
+              </button>
+            </div>
+          )}
         </div>
       </Section>
 

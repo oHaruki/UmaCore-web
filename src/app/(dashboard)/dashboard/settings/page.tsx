@@ -21,6 +21,7 @@ export type Club = {
   scrape_url: string | null
   circle_id: string | null
   guild_id: string | null
+  public_enabled: boolean
 }
 
 export type QuotaReq = {
@@ -47,7 +48,8 @@ export default async function SettingsPage({
            timezone, scrape_time::text,
            report_channel_id::text, alert_channel_id::text,
            monthly_info_channel_id::text,
-           scrape_url, circle_id, guild_id::text
+           scrape_url, circle_id, guild_id::text,
+           public_enabled
     FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name
   `, [guildIds]).catch(() => [])
 
