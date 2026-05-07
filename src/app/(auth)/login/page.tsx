@@ -78,6 +78,25 @@ export default async function LoginPage() {
               </p>
             </div>
 
+            {/* Verification notice */}
+            <div className="fade-up d3 flex items-start gap-2.5 px-3 py-2.5 bg-amber-500/8 border border-amber-500/15 rounded-lg">
+              <div className="mt-0.5 w-1 h-1 rounded-full bg-amber-400 shrink-0" />
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                UmaCore has reached 100 servers and is{' '}
+                <span className="text-amber-400 font-medium">pending Discord verification.</span>{' '}
+                The bot cannot join new servers until approved. Existing servers are unaffected.{' '}
+                <a
+                  href="https://discord.gg/f4QZNag9Hv"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-violet-400 hover:text-violet-300 underline underline-offset-2 transition-colors"
+                >
+                  Join our Discord
+                </a>{' '}
+                to stay up to date.
+              </p>
+            </div>
+
             {/* Divider */}
             <div className="fade-up d3 h-px bg-white/5" />
 
