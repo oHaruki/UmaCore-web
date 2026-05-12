@@ -16,9 +16,10 @@ type SetupState = {
 
 export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHistory: QuotaReq[] }) {
   // Lift boolean states so UI reflects changes immediately without page refresh
-  const [isActive, setIsActive]           = useState(club.is_active)
-  const [bombsEnabled, setBombsEnabled]   = useState(club.bombs_enabled)
-  const [publicEnabled, setPublicEnabled] = useState(club.public_enabled)
+  const [isActive, setIsActive]                     = useState(club.is_active)
+  const [bombsEnabled, setBombsEnabled]             = useState(club.bombs_enabled)
+  const [publicEnabled, setPublicEnabled]           = useState(club.public_enabled)
+  const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
   const [status, setStatus]               = useState<Record<string, SaveStatus>>({})
   const [copied, setCopied]               = useState(false)
 
@@ -126,6 +127,25 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             savedStatus={fs('scrape_time')}
             onSave={v => save({ scrape_time: v }, 'scrape_time')}
             hint="Recommended: 18:00 — uma.moe refreshes data around this time"
+          />
+        </div>
+      </Section>
+
+      {/* Reports */}
+      <Section title="Reports">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-zinc-300">Image report</p>
+            <p className="text-xs text-zinc-600 mt-0.5">
+              Post a visual PNG chart instead of the default text embeds for daily quota reports
+            </p>
+          </div>
+          <Toggle
+            on={imageReportEnabled}
+            label={imageReportEnabled ? 'Enabled' : 'Disabled'}
+            saving={fs('image_report_enabled') === 'saving'}
+            onChange={v => { setImageReportEnabled(v); save({ image_report_enabled: v }, 'image_report_enabled') }}
+            savedStatus={fs('image_report_enabled')}
           />
         </div>
       </Section>

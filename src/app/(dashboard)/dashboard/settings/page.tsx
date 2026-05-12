@@ -23,6 +23,7 @@ export type Club = {
   guild_id: string | null
   public_enabled: boolean
   public_slug: string | null
+  image_report_enabled: boolean
 }
 
 export type QuotaReq = {
@@ -50,7 +51,7 @@ export default async function SettingsPage({
            report_channel_id::text, alert_channel_id::text,
            monthly_info_channel_id::text,
            scrape_url, circle_id, guild_id::text,
-           public_enabled, public_slug
+           public_enabled, public_slug, image_report_enabled
     FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name
   `, [guildIds]).catch(() => [])
 
