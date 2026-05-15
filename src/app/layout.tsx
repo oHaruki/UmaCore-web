@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   },
   description: 'Quota tracking, member management, and reports for Uma Musume club admins.',
   metadataBase: new URL(APP_URL),
+  alternates: {
+    canonical: APP_URL,
+  },
   openGraph: {
     title: 'UmaCore',
     description: 'Quota tracking, member management, and reports for Uma Musume club admins.',
