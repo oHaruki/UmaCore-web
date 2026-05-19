@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const nav = [
@@ -81,6 +81,16 @@ export default function Sidebar() {
         </nav>
 
         <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
+          <a
+            href="https://discord.com/oauth2/authorize?client_id=1467295225184784488&permissions=83968&integration_type=0&scope=bot+applications.commands"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
+          >
+            <PlusCircle size={16} />
+            Add to server
+          </a>
           <Link
             href="/dashboard/changelog"
             onClick={() => setOpen(false)}

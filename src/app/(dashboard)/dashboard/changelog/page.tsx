@@ -5,12 +5,24 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.3',
+    date: 'May 18, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Discord verification approved — the bot can now join new servers again' },
+      { type: 'feat',    text: 'Public club page — shareable /club/[slug] page showing live quota health, member status, and rank history' },
+      { type: 'feat',    text: 'Image report toggle in Settings — post a visual PNG tally chart instead of the default text embeds for daily quota reports' },
+      { type: 'improve', text: 'SEO — robots.txt and sitemap added so the site is properly indexed' },
+    ],
+  },
+  {
     version: '1.2',
     date: 'Apr 30, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Guide page — bot scenario reference covering daily scrape flow, new members, bomb lifecycle, monthly resets, and quota changes' },
       { type: 'feat',    text: 'Setup checklist in Settings — live card that shows exactly what is missing before the bot can run, with per-field explanations' },
+      { type: 'feat',    text: 'Onboarding empty state — new users with no clubs see a setup screen with a bot invite link and 3-step guide' },
       { type: 'improve', text: 'Add Club modal now shows a Discord server name dropdown instead of requiring you to paste a raw guild ID' },
       { type: 'improve', text: 'Club list in Settings shows an amber badge on any club with incomplete critical configuration' },
       { type: 'improve', text: 'Scrape time field now hints that 18:00 Europe/Amsterdam is recommended (when Uma.moe refreshes data)' },
@@ -24,8 +36,11 @@ const CHANGELOG: {
       { type: 'feat',    text: 'Club Overview page — per-club quota health, rank sparklines, and member breakdown' },
       { type: 'feat',    text: 'Member edit panel — update trainer name and status inline' },
       { type: 'feat',    text: 'Changelog page — track what\'s new across versions' },
+      { type: 'feat',    text: 'Mobile responsive layout across all dashboard pages and the sidebar' },
       { type: 'improve', text: 'Login page now shows live platform stats with animated counters' },
+      { type: 'improve', text: 'Login page background updated with new character video' },
       { type: 'improve', text: 'Sidebar footer with What\'s new and Ko-fi support links' },
+      { type: 'fix',     text: 'Rank sparkline now filters out month-reset outliers for cleaner charts' },
     ],
   },
   {

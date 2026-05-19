@@ -119,6 +119,15 @@ export default function AddClubButton({ adminGuilds }: { adminGuilds: { id: stri
                       >
                         Refresh server list
                       </button>
+                      {' '}·{' '}
+                      <a
+                        href="https://discord.com/oauth2/authorize?client_id=1467295225184784488&permissions=83968&integration_type=0&scope=bot+applications.commands"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                      >
+                        Invite bot
+                      </a>
                     </p>
                   )}
                 </Field>

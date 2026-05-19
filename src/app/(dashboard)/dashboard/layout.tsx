@@ -2,7 +2,6 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/components/layout/Sidebar'
 import DonationBanner from '@/components/layout/DonationBanner'
-import VerificationBanner from '@/components/layout/VerificationBanner'
 import WelcomeModal from '@/components/layout/WelcomeModal'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -14,7 +13,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <WelcomeModal />
       <Sidebar />
       <main className="md:ml-56 p-4 pt-16 md:p-8 md:pt-8">
-        <VerificationBanner />
         <DonationBanner />
         {children}
       </main>
