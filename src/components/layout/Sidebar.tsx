@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 const nav = [
@@ -19,7 +19,7 @@ const nav = [
   { label: 'Guide',         href: '/dashboard/guide',     icon: BookOpen },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOwner = false }: { isOwner?: boolean }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
 
@@ -81,6 +81,21 @@ export default function Sidebar() {
         </nav>
 
         <div className="px-3 py-4 border-t border-white/5 space-y-0.5">
+          {isOwner && (
+            <Link
+              href="/dashboard/admin"
+              onClick={() => setOpen(false)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                pathname === '/dashboard/admin'
+                  ? 'bg-red-600/20 text-red-300'
+                  : 'text-red-400/70 hover:text-red-300 hover:bg-red-600/10'
+              )}
+            >
+              <ShieldAlert size={16} />
+              Admin
+            </Link>
+          )}
           <a
             href="https://discord.com/oauth2/authorize?client_id=1467295225184784488&permissions=83968&integration_type=0&scope=bot+applications.commands"
             target="_blank"

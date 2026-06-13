@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <WelcomeModal />
-      <Sidebar />
+      <Sidebar isOwner={session.isOwner ?? false} />
       <main className="md:ml-56 p-4 pt-16 md:p-8 md:pt-8">
         <DonationBanner />
         {children}

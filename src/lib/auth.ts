@@ -2,6 +2,7 @@ import NextAuth from 'next-auth'
 import Discord from 'next-auth/providers/discord'
 
 const ADMINISTRATOR = 0x8
+const OWNER_ID = '139769063948681217'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -13,9 +14,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, account }) {
-      // Fetch the user's Discord guilds on initial sign-in and store which ones
-      // they are Administrator in. Carried in the JWT for subsequent requests.
       if (account?.access_token) {
+        // Store the real Discord snowflake ID — token.sub is a NextAuth UUID, not the Discord ID
+        token.discordId = account.providerAccountId
         try {
           const res = await fetch('https://discord.com/api/users/@me/guilds', {
             headers: { Authorization: `Bearer ${account.access_token}` },
@@ -31,8 +32,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub
+      const discordId = (token.discordId as string | undefined) ?? token.sub ?? ''
+      if (session.user) {
+        session.user.id = discordId
       }
       const guilds = Array.isArray(token.adminGuilds)
         ? token.adminGuilds.filter((g): g is { id: string; name: string } =>
@@ -41,6 +43,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         : []
       session.adminGuilds = guilds
       session.adminGuildIds = guilds.map(g => g.id)
+      session.isOwner = discordId === OWNER_ID
       return session
     },
   },
