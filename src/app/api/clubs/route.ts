@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { logAudit } from '@/lib/audit'
+import { getBotGuildIds } from '@/lib/bot-guilds'
+import { effectiveAdminGuildIds } from '@/lib/guild-check'
 
 export async function POST(req: NextRequest) {
   const session = await auth()
@@ -20,8 +22,15 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid guild_id' }, { status: 400 })
   }
-  if (!session.adminGuildIds?.includes(guildIdStr))
-    return NextResponse.json({ error: 'Forbidden — you are not an admin of that server' }, { status: 403 })
+  const effAdmin = await effectiveAdminGuildIds(session)
+  if (!effAdmin.includes(guildIdStr))
+    return NextResponse.json({ error: 'Forbidden — you are not an admin or manager of that server' }, { status: 403 })
+
+  // The bot must actually be in the server, or the club can't function.
+  // (If the bot is unreachable we can't verify, so we allow it through.)
+  const botGuildIds = await getBotGuildIds()
+  if (botGuildIds && !botGuildIds.includes(guildIdStr))
+    return NextResponse.json({ error: 'The bot is not in that server — invite it first' }, { status: 400 })
 
   const result = await query<{ club_id: string }>(`
     INSERT INTO clubs (

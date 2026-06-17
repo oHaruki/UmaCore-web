@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import { MemberToggle, AddMemberButton } from './MemberActions'
 import MemberSearch from './MemberSearch'
+import { resolveActiveClub } from '@/lib/active-club'
 import { Suspense } from 'react'
 
 type Member = {
@@ -19,28 +20,30 @@ type Member = {
   days_behind: string | null
 }
 
-type Club = { club_id: string; club_name: string }
-
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; club?: string; search?: string }>
+  searchParams: Promise<{ filter?: string; search?: string }>
 }) {
-  const { filter, club, search } = await searchParams
+  const { filter, search } = await searchParams
 
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const { active } = session ? await resolveActiveClub(session) : { active: null }
 
-  // $1 = guildIds always; club/search shift up
-  let midx = 2
-  const clubFilter   = club   ? `AND c.club_id = $${midx++}`                    : ''
-  const searchFilter = search ? `AND m.trainer_name ILIKE $${midx++}`           : ''
-  const memberParams = [guildIds, ...[club, search ? `%${search}%` : null].filter(Boolean)]
+  if (!active) {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-lg font-semibold text-white">Members</h1>
+        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-10 text-center text-xs text-zinc-600">
+          No club selected. Add a club or pick one from the switcher above.
+        </div>
+      </div>
+    )
+  }
 
-  const clubs = await query<Club>(
-    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
-    [guildIds]
-  ).catch(() => [])
+  // Everything on this page is scoped to the active club chosen in the header.
+  const searchFilter = search ? 'AND m.trainer_name ILIKE $2' : ''
+  const memberParams = search ? [active.club_id, `%${search}%`] : [active.club_id]
 
   const members = await query<Member>(`
     SELECT
@@ -53,10 +56,9 @@ export default async function MembersPage({
       SELECT deficit_surplus, cumulative_fans, days_behind
       FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
     ) lat ON true
-    WHERE c.guild_id::text = ANY($1::text[])
+    WHERE m.club_id = $1
       ${filter === 'active'   ? 'AND m.is_active = true'  : ''}
       ${filter === 'inactive' ? 'AND m.is_active = false' : ''}
-      ${clubFilter}
       ${searchFilter}
     ORDER BY m.is_active DESC, m.trainer_name
   `, memberParams).catch(() => [])
@@ -64,11 +66,9 @@ export default async function MembersPage({
   const counts = await query<{ filter: string; c: string }>(`
     SELECT CASE WHEN m.is_active THEN 'active' ELSE 'inactive' END AS filter, COUNT(*)::text AS c
     FROM members m
-    JOIN clubs c ON c.club_id = m.club_id
-    WHERE c.guild_id::text = ANY($1::text[])
-      ${club ? 'AND m.club_id = $2' : ''}
+    WHERE m.club_id = $1
     GROUP BY m.is_active
-  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
+  `, [active.club_id]).catch(() => [])
 
   const total     = counts.reduce((a, r) => a + Number(r.c), 0)
   const activeN   = counts.find(r => r.filter === 'active')?.c  ?? '0'
@@ -83,16 +83,7 @@ export default async function MembersPage({
   function tabHref(tabValue?: string) {
     const p = new URLSearchParams()
     if (tabValue) p.set('filter', tabValue)
-    if (club)     p.set('club', club)
     if (search)   p.set('search', search)
-    return `?${p.toString()}`
-  }
-
-  function clubHref(clubId?: string) {
-    const p = new URLSearchParams()
-    if (filter)  p.set('filter', filter)
-    if (clubId)  p.set('club', clubId)
-    if (search)  p.set('search', search)
     return `?${p.toString()}`
   }
 
@@ -109,18 +100,7 @@ export default async function MembersPage({
             <MemberSearch />
           </Suspense>
 
-          {/* Club filter */}
-          <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <Link href={clubHref()} className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>All</Link>
-            {clubs.map(c => (
-              <Link key={c.club_id} href={clubHref(c.club_id)}
-                className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                {c.club_name}
-              </Link>
-            ))}
-          </div>
-
-          <AddMemberButton clubs={clubs} />
+          <AddMemberButton clubs={[active]} />
         </div>
       </div>
 

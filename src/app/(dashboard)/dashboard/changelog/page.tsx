@@ -5,9 +5,22 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.4',
+    date: 'Jun 18, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Club editor roles — admins can assign a Discord role that lets non-admins fully manage one specific club (and create new ones), via the dashboard or /add_club_editor' },
+      { type: 'feat',    text: 'Server manager roles — grant a role full management of every club in a server (create, edit, delete, assign editors), set from the Overview or /add_manager_role' },
+      { type: 'improve', text: 'Club-centric dashboard — pick a club on the Overview and the sidebar plus every tab (Members, Bombs, Quota, Reports, Settings, Audit) scope to it; switch clubs from the header' },
+      { type: 'improve', text: 'Overview redesigned as a clean club picker with an Add club button and per-club role assignment' },
+      { type: 'improve', text: 'Add Club now only lists Discord servers the bot is actually in' },
+      { type: 'improve', text: 'Audit log now records club-editor and server-manager role changes' },
+    ],
+  },
+  {
     version: '1.3',
     date: 'May 18, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Discord verification approved — the bot can now join new servers again' },
       { type: 'feat',    text: 'Public club page — shareable /club/[slug] page showing live quota health, member status, and rank history' },

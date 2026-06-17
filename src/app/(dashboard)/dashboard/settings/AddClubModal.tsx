@@ -52,9 +52,15 @@ export default function AddClubButton({ adminGuilds }: { adminGuilds: { id: stri
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to create club')
+      // Make the new club the active one so Settings opens on it.
+      await fetch('/api/active-club', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ club_id: data.club_id }),
+      })
       setOpen(false)
+      router.push('/dashboard/settings')
       router.refresh()
-      router.push(`/dashboard/settings?club=${data.club_id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
     } finally {

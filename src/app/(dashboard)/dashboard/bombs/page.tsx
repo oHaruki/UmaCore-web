@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { resolveActiveClub } from '@/lib/active-club'
 import Link from 'next/link'
 
 type Bomb = {
@@ -17,12 +18,23 @@ type Bomb = {
 export default async function BombsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; club?: string }>
+  searchParams: Promise<{ tab?: string }>
 }) {
-  const { tab = 'active', club } = await searchParams
+  const { tab = 'active' } = await searchParams
 
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const { active } = session ? await resolveActiveClub(session) : { active: null }
+
+  if (!active) {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-lg font-semibold text-white">Bombs</h1>
+        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-10 text-center text-xs text-zinc-600">
+          No club selected. Add a club or pick one from the switcher above.
+        </div>
+      </div>
+    )
+  }
 
   const bombs = await query<Bomb>(`
     SELECT
@@ -39,53 +51,28 @@ export default async function BombsPage({
     JOIN members m ON m.member_id = b.member_id
     JOIN clubs   c ON c.club_id   = b.club_id
     WHERE b.is_active = ${tab === 'active' ? 'true' : 'false'}
-      AND c.guild_id::text = ANY($1::text[])
-      ${club ? 'AND b.club_id = $2' : ''}
+      AND b.club_id = $1
     ORDER BY b.days_remaining ASC, b.activation_date DESC
-  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
+  `, [active.club_id]).catch(() => [])
 
   const counts = await query<{ is_active: boolean; c: string }>(`
     SELECT b.is_active, COUNT(*)::text AS c
     FROM bombs b
-    JOIN clubs c ON c.club_id = b.club_id
-    WHERE c.guild_id::text = ANY($1::text[])
-      ${club ? 'AND b.club_id = $2' : ''}
+    WHERE b.club_id = $1
     GROUP BY b.is_active
-  `, club ? [guildIds, club] : [guildIds]).catch(() => [])
+  `, [active.club_id]).catch(() => [])
 
   const activeCount   = counts.find(r => r.is_active)?.c  ?? '0'
   const inactiveCount = counts.find(r => !r.is_active)?.c ?? '0'
-
-  const clubs = await query<{ club_id: string; club_name: string }>(
-    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
-    [guildIds]
-  ).catch(() => [])
 
   return (
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">Bombs</h1>
+          <h1 className="text-lg font-semibold text-white">Bombs · {active.club_name}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">
             Members with active bomb countdowns are at risk of removal
           </p>
-        </div>
-
-        {/* Club filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-600">Club</span>
-          <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <Link href={`?tab=${tab}`}
-              className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-              All
-            </Link>
-            {clubs.map(c => (
-              <Link key={c.club_id} href={`?tab=${tab}&club=${c.club_id}`}
-                className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                {c.club_name}
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -107,7 +94,7 @@ export default async function BombsPage({
           { label: 'Resolved', value: 'resolved', count: inactiveCount },
         ].map(t => (
           <Link key={t.value}
-            href={`?tab=${t.value}${club ? `&club=${club}` : ''}`}
+            href={`?tab=${t.value}`}
             className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
               tab === t.value ? 'border-violet-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
             }`}>

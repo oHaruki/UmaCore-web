@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { resolveActiveClub } from '@/lib/active-club'
 import Link from 'next/link'
 
 type Entry = {
@@ -13,8 +14,6 @@ type Entry = {
   days_behind: string
 }
 
-type Club = { club_id: string; club_name: string }
-
 const RANGES = [
   { label: '7d',  value: '7',   days: 7 },
   { label: '30d', value: '30',  days: 30 },
@@ -25,24 +24,28 @@ const RANGES = [
 export default async function QuotaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; club?: string; trainer?: string }>
+  searchParams: Promise<{ range?: string; trainer?: string }>
 }) {
-  const { range = '30', club, trainer } = await searchParams
+  const { range = '30', trainer } = await searchParams
   const rangeConfig = RANGES.find(r => r.value === range) ?? RANGES[1]
 
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const { active } = session ? await resolveActiveClub(session) : { active: null }
 
-  // $1 is always guildIds; club/trainer shift indices up by 1
-  const dynamicParams = [guildIds, ...[club, trainer].filter(Boolean)]
-  let pidx = 2
-  const clubFilter   = club    ? `AND qh.club_id = $${pidx++}`    : ''
-  const trainerFilter = trainer ? `AND m.trainer_id = $${pidx++}` : ''
+  if (!active) {
+    return (
+      <div className="space-y-5">
+        <h1 className="text-lg font-semibold text-white">Quota History</h1>
+        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-10 text-center text-xs text-zinc-600">
+          No club selected. Add a club or pick one from the switcher above.
+        </div>
+      </div>
+    )
+  }
 
-  const clubs = await query<Club>(
-    'SELECT club_id, club_name FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name',
-    [guildIds]
-  ).catch(() => [])
+  // Scoped to the active club ($1); trainer is an optional $2.
+  const params = trainer ? [active.club_id, trainer] : [active.club_id]
+  const trainerFilter = trainer ? 'AND m.trainer_id = $2' : ''
 
   const entries = await query<Entry>(`
     SELECT
@@ -57,18 +60,12 @@ export default async function QuotaPage({
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
     JOIN clubs   c ON c.club_id::text = qh.club_id::text
-    WHERE c.guild_id::text = ANY($1::text[])
+    WHERE qh.club_id = $1
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
-      ${clubFilter}
       ${trainerFilter}
     ORDER BY qh.date DESC, m.trainer_name
     LIMIT 300
-  `, dynamicParams).catch(() => [])
-
-  // Reset indices for summary query (same params)
-  let sidx = 2
-  const sClubFilter    = club    ? `AND qh.club_id = $${sidx++}`    : ''
-  const sTrainerFilter = trainer ? `AND m.trainer_id = $${sidx++}` : ''
+  `, params).catch(() => [])
 
   const summary = await query<{ on_track: string; behind: string; avg_surplus: string; total_fans: string }>(`
     SELECT
@@ -79,11 +76,10 @@ export default async function QuotaPage({
     FROM quota_history qh
     JOIN members m ON m.member_id = qh.member_id
     JOIN clubs   c ON c.club_id::text = qh.club_id::text
-    WHERE c.guild_id::text = ANY($1::text[])
+    WHERE qh.club_id = $1
       ${rangeConfig.days ? `AND qh.date >= CURRENT_DATE - INTERVAL '${rangeConfig.days} days'` : ''}
-      ${sClubFilter}
-      ${sTrainerFilter}
-  `, dynamicParams).catch(() => [{ on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }])
+      ${trainerFilter}
+  `, params).catch(() => [{ on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }])
 
   const s = summary[0] ?? { on_track: '0', behind: '0', avg_surplus: '0', total_fans: '0' }
 
@@ -91,26 +87,8 @@ export default async function QuotaPage({
     <div className="space-y-5">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">Quota History</h1>
+          <h1 className="text-lg font-semibold text-white">Quota History · {active.club_name}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">{entries.length} entries</p>
-        </div>
-
-        {/* Club filter */}
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-zinc-600">Club</span>
-          <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
-            <Link href={`?range=${range}${trainer ? `&trainer=${trainer}` : ''}`}
-              className={`px-2.5 py-1 text-xs rounded transition-colors ${!club ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-              All
-            </Link>
-            {clubs.map((c) => (
-              <Link key={c.club_id}
-                href={`?range=${range}&club=${c.club_id}${trainer ? `&trainer=${trainer}` : ''}`}
-                className={`px-2.5 py-1 text-xs rounded transition-colors ${club === c.club_id ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
-                {c.club_name}
-              </Link>
-            ))}
-          </div>
         </div>
       </div>
 
@@ -141,7 +119,7 @@ export default async function QuotaPage({
         <div className="flex items-center gap-1 bg-[#0d0d14] border border-white/5 rounded-lg p-1">
           {RANGES.map((r) => (
             <Link key={r.value}
-              href={`?range=${r.value}${club ? `&club=${club}` : ''}${trainer ? `&trainer=${trainer}` : ''}`}
+              href={`?range=${r.value}${trainer ? `&trainer=${trainer}` : ''}`}
               className={`px-3 py-1.5 text-xs rounded font-medium transition-colors ${range === r.value ? 'bg-white/8 text-white' : 'text-zinc-500 hover:text-zinc-300'}`}>
               {r.label}
             </Link>
@@ -150,7 +128,7 @@ export default async function QuotaPage({
         {trainer && (
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#0d0d14] border border-white/5 rounded-lg">
             <span className="text-xs text-zinc-400">Trainer: {entries[0]?.trainer_name ?? trainer}</span>
-            <Link href={`?range=${range}${club ? `&club=${club}` : ''}`} className="text-xs text-zinc-600 hover:text-zinc-400">×</Link>
+            <Link href={`?range=${range}`} className="text-xs text-zinc-600 hover:text-zinc-400">×</Link>
           </div>
         )}
       </div>
@@ -177,7 +155,7 @@ export default async function QuotaPage({
                 <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                   <td className="px-5 py-3 text-xs text-zinc-400">{new Date(e.date).toLocaleDateString()}</td>
                   <td className="px-5 py-3">
-                    <a href={`?range=${range}${club ? `&club=${club}` : ''}&trainer=${e.trainer_id}`}
+                    <a href={`?range=${range}&trainer=${e.trainer_id}`}
                       className="text-xs text-zinc-200 hover:text-white transition-colors font-medium">
                       {e.trainer_name}
                     </a>

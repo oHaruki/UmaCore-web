@@ -1,8 +1,10 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { resolveActiveClub } from '@/lib/active-club'
+import { effectiveAdminGuildIds } from '@/lib/guild-check'
+import { getBotGuilds } from '@/lib/bot-guilds'
 import ClubDetail from './ClubDetail'
 import AddClubButton from './AddClubModal'
-import Link from 'next/link'
 
 export type Club = {
   club_id: string
@@ -33,29 +35,29 @@ export type QuotaReq = {
   set_by: string | null
 }
 
-export default async function SettingsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ club?: string }>
-}) {
-  const { club: selectedId } = await searchParams
-
+export default async function SettingsPage() {
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
-  const adminGuilds = session?.adminGuilds ?? []
+  const effAdminGuildIds = session ? await effectiveAdminGuildIds(session) : []
+  const botGuilds = await getBotGuilds()
+  const addableGuilds = botGuilds
+    ? botGuilds.filter(g => effAdminGuildIds.includes(g.id))
+    : (session?.adminGuilds ?? []).filter(g => effAdminGuildIds.includes(g.id))
+  const { active } = session ? await resolveActiveClub(session) : { active: null }
 
-  const clubs = await query<Club>(`
-    SELECT club_id, club_name, daily_quota::text, quota_period,
-           is_active, bombs_enabled, bomb_trigger_days, bomb_countdown_days,
-           timezone, scrape_time::text,
-           report_channel_id::text, alert_channel_id::text,
-           monthly_info_channel_id::text,
-           scrape_url, circle_id, guild_id::text,
-           public_enabled, public_slug, image_report_enabled
-    FROM clubs WHERE guild_id::text = ANY($1::text[]) ORDER BY club_name
-  `, [guildIds]).catch(() => [])
+  const clubRows = active
+    ? await query<Club>(`
+        SELECT club_id, club_name, daily_quota::text, quota_period,
+               is_active, bombs_enabled, bomb_trigger_days, bomb_countdown_days,
+               timezone, scrape_time::text,
+               report_channel_id::text, alert_channel_id::text,
+               monthly_info_channel_id::text,
+               scrape_url, circle_id, guild_id::text,
+               public_enabled, public_slug, image_report_enabled
+        FROM clubs WHERE club_id = $1
+      `, [active.club_id]).catch(() => [])
+    : []
 
-  const selected = clubs.find(c => c.club_id === selectedId) ?? clubs[0]
+  const selected = clubRows[0]
 
   const quotaHistory = selected
     ? await query<QuotaReq>(`
@@ -68,50 +70,23 @@ export default async function SettingsPage({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold text-white">Settings</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">Club configuration and management</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-white">
+            Settings{selected ? ` · ${selected.club_name}` : ''}
+          </h1>
+          <p className="text-xs text-zinc-500 mt-0.5">Configuration for the selected club</p>
+        </div>
+        <AddClubButton adminGuilds={addableGuilds} />
       </div>
 
-      <div className="flex flex-col md:flex-row gap-5 min-h-[600px]">
-        {/* Club list */}
-        <div className="w-full md:w-48 shrink-0">
-          <div className="space-y-0.5">
-            {clubs.map(c => {
-              const needsSetup = !c.report_channel_id || (!c.scrape_url && !c.circle_id)
-              return (
-                <Link
-                  key={c.club_id}
-                  href={`?club=${c.club_id}`}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    selected?.club_id === c.club_id
-                      ? 'bg-violet-600/15 text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                  <span className="truncate text-sm flex-1 min-w-0">{c.club_name}</span>
-                  {needsSetup && (
-                    <span className="w-1.5 h-1.5 rounded-full shrink-0 bg-amber-400" title="Setup incomplete" />
-                  )}
-                </Link>
-              )
-            })}
-          </div>
-          <AddClubButton adminGuilds={adminGuilds} />
+      {selected ? (
+        <ClubDetail key={selected.club_id} club={selected} quotaHistory={quotaHistory} />
+      ) : (
+        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-8 text-xs text-zinc-600 text-center">
+          No club selected. Add a club or pick one from the switcher above.
         </div>
-
-        {/* Detail panel */}
-        <div className="flex-1 min-w-0">
-          {selected ? (
-            <ClubDetail key={selected.club_id} club={selected} quotaHistory={quotaHistory} />
-          ) : (
-            <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-8 text-xs text-zinc-600 text-center">
-              No clubs found
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

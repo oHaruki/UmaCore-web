@@ -1,8 +1,9 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { accessibleClubIds } from '@/lib/guild-check'
+import { getActiveClubId } from '@/lib/active-club'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import ClubSelector from './ClubSelector'
 
 type ClubOption = { club_id: string; club_name: string }
 
@@ -54,14 +55,14 @@ export default async function ClubOverviewPage({
   searchParams: Promise<{ clubId?: string }>
 }) {
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const clubIds = session ? await accessibleClubIds(session) : []
   const { clubId: rawClubId } = await searchParams
 
   const clubs = await query<ClubOption>(`
     SELECT club_id::text, club_name FROM clubs
-    WHERE guild_id::text = ANY($1::text[])
+    WHERE club_id::text = ANY($1::text[])
     ORDER BY club_name
-  `, [guildIds]).catch(() => [])
+  `, [clubIds]).catch(() => [])
 
   if (clubs.length === 0) {
     return (
@@ -71,7 +72,11 @@ export default async function ClubOverviewPage({
     )
   }
 
-  const clubId = rawClubId ?? clubs[0].club_id
+  // Prefer the explicit ?clubId, then the active-club cookie, then the first club.
+  const cookieId = await getActiveClubId()
+  const clubId =
+    rawClubId ??
+    (cookieId && clubs.some(c => c.club_id === cookieId) ? cookieId : clubs[0].club_id)
 
   const [clubRows, members, compliance, rankHistory, bombStatRows] = await Promise.all([
     query<ClubDetail>(`
@@ -88,9 +93,9 @@ export default async function ClubOverviewPage({
       LEFT JOIN LATERAL (
         SELECT deficit_surplus FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
       ) lat ON true
-      WHERE c.club_id = $1 AND c.guild_id::text = ANY($2::text[])
+      WHERE c.club_id = $1 AND c.club_id::text = ANY($2::text[])
       GROUP BY c.club_id
-    `, [clubId, guildIds]).catch(() => []),
+    `, [clubId, clubIds]).catch(() => []),
 
     query<MemberStanding>(`
       SELECT m.member_id::text, m.trainer_name,
@@ -153,10 +158,9 @@ export default async function ClubOverviewPage({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-white">Club Overview</h1>
+          <h1 className="text-lg font-semibold text-white">Club home · {club.club_name}</h1>
           <p className="text-xs text-zinc-500 mt-0.5">Detailed stats and member standings</p>
         </div>
-        <ClubSelector clubs={clubs} selected={clubId} />
       </div>
 
       {/* Club identity bar */}

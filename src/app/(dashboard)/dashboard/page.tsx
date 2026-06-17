@@ -1,19 +1,17 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
-import Link from 'next/link'
+import { isClubAdmin, effectiveAdminGuildIds } from '@/lib/guild-check'
+import { resolveActiveClub } from '@/lib/active-club'
+import { getBotGuilds } from '@/lib/bot-guilds'
+import ClubCardLink from './ClubCardLink'
+import ClubEditors from './settings/ClubEditors'
+import GuildManagers from './GuildManagers'
+import AddClubButton from './settings/AddClubModal'
 
 type ClubStat = {
   club_id: string; club_name: string; daily_quota: string
   quota_period: string; is_active: boolean
   active_count: string; on_track: string; behind: string
-}
-type RecentEntry = {
-  member_id: string; trainer_name: string; club_name: string
-  date: string; deficit_surplus: string; cumulative_fans: string
-}
-type AtRisk = {
-  member_id: string; trainer_name: string; club_name: string
-  days_behind: string; deficit_surplus: string; bomb_active: boolean; bomb_days: number | null
 }
 type RankPoint = {
   club_id: string; club_name: string; date: string; club_rank: string
@@ -21,9 +19,22 @@ type RankPoint = {
 
 export default async function DashboardPage() {
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const { active, clubs: accessibleClubs } = session
+    ? await resolveActiveClub(session)
+    : { active: null, clubs: [] }
+  const clubIds = accessibleClubs.map(c => c.club_id)
+  const canManageEditors = session && active ? await isClubAdmin(session, active.club_id) : false
+  // Manager-role assignment is Discord-admin-only (no manager self-escalation).
+  const isGuildDiscordAdmin = !!(active?.guild_id && session?.adminGuildIds?.includes(active.guild_id))
+  // Servers you can add a club to: ones you admin/manage AND the bot is in.
+  // Names come from the bot (manager-only guild names aren't in the session).
+  const effAdminGuildIds = session ? await effectiveAdminGuildIds(session) : []
+  const botGuilds = await getBotGuilds()
+  const addableGuilds = botGuilds
+    ? botGuilds.filter(g => effAdminGuildIds.includes(g.id))
+    : (session?.adminGuilds ?? []).filter(g => effAdminGuildIds.includes(g.id))
 
-  const [clubStats, recent, atRisk, rankHistory] = await Promise.all([
+  const [clubStats, rankHistory] = await Promise.all([
     query<ClubStat>(`
       SELECT c.club_id, c.club_name, c.daily_quota::text, c.quota_period, c.is_active,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_count,
@@ -34,47 +45,18 @@ export default async function DashboardPage() {
       LEFT JOIN LATERAL (
         SELECT deficit_surplus FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
       ) lat ON true
-      WHERE c.guild_id::text = ANY($1::text[])
+      WHERE c.club_id::text = ANY($1::text[])
       GROUP BY c.club_id ORDER BY c.club_name
-    `, [guildIds]).catch(() => []),
-
-    query<RecentEntry>(`
-      SELECT m.member_id, m.trainer_name, c.club_name, qh.date::text,
-             qh.deficit_surplus::text, qh.cumulative_fans::text
-      FROM quota_history qh
-      JOIN members m ON m.member_id = qh.member_id
-      JOIN clubs c ON c.club_id::text = qh.club_id::text
-      WHERE c.guild_id::text = ANY($1::text[])
-      ORDER BY qh.date DESC, qh.created_at DESC LIMIT 8
-    `, [guildIds]).catch(() => []),
-
-    query<AtRisk>(`
-      SELECT m.member_id, m.trainer_name, c.club_name,
-             lat.days_behind::text, lat.deficit_surplus::text,
-             (b.bomb_id IS NOT NULL AND b.is_active)  AS bomb_active,
-             b.days_remaining                          AS bomb_days
-      FROM members m
-      JOIN clubs c ON c.club_id = m.club_id
-      LEFT JOIN LATERAL (
-        SELECT days_behind, deficit_surplus FROM quota_history
-        WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
-      ) lat ON true
-      LEFT JOIN bombs b ON b.member_id = m.member_id AND b.is_active = true
-      WHERE m.is_active = true
-        AND c.guild_id::text = ANY($1::text[])
-        AND (lat.days_behind > 0 OR (b.bomb_id IS NOT NULL AND b.is_active))
-      ORDER BY bomb_active DESC, lat.days_behind DESC
-      LIMIT 10
-    `, [guildIds]).catch(() => []),
+    `, [clubIds]).catch(() => []),
 
     query<RankPoint>(`
       SELECT crh.club_id::text, c.club_name, crh.date::text, crh.club_rank::text
       FROM club_rank_history crh
       JOIN clubs c ON c.club_id = crh.club_id
       WHERE crh.date >= CURRENT_DATE - INTERVAL '30 days'
-        AND c.guild_id::text = ANY($1::text[])
+        AND c.club_id::text = ANY($1::text[])
       ORDER BY c.club_name, crh.date ASC
-    `, [guildIds]).catch(() => []),
+    `, [clubIds]).catch(() => []),
   ])
 
   const totals = clubStats.reduce(
@@ -148,14 +130,12 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold text-white">Overview</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </p>
+          <h1 className="text-lg font-semibold text-white">Clubs Overview</h1>
+          <p className="text-xs text-zinc-500 mt-0.5">Select a club to manage it</p>
         </div>
-        <span className="text-xs text-zinc-600">{session?.user?.name}</span>
+        <AddClubButton adminGuilds={addableGuilds} />
       </div>
 
       {/* Global stats */}
@@ -173,59 +153,21 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* At-risk alert */}
-      {atRisk.length > 0 && (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <p className="text-sm font-medium text-white">Needs attention</p>
-            </div>
-            <Link href="/dashboard/members?filter=active" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">View all →</Link>
-          </div>
-          <div className="divide-y divide-white/5">
-            {atRisk.map(m => (
-              <div key={m.member_id} className="px-5 py-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3 min-w-0">
-                  <Link href={`/dashboard/members/${m.member_id}`}
-                    className="text-xs font-medium text-zinc-200 hover:text-white transition-colors truncate">
-                    {m.trainer_name}
-                  </Link>
-                  <span className="text-[10px] text-zinc-600 shrink-0">{m.club_name}</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  {m.bomb_active && (
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${
-                      (m.bomb_days ?? 0) <= 1 ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
-                    }`}>
-                      💣 {m.bomb_days}d
-                    </span>
-                  )}
-                  <span className="text-xs text-amber-400">{m.days_behind}d behind</span>
-                  <span className={`text-xs font-medium ${Number(m.deficit_surplus) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {Number(m.deficit_surplus) >= 0 ? '+' : ''}{formatFans(Number(m.deficit_surplus))}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Main grid */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-
-        {/* Club cards */}
-        <div className="md:col-span-3 space-y-3">
+      {/* Club cards — pick one to manage */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {clubStats.map(club => {
             const total   = Number(club.active_count)
             const onTrack = Number(club.on_track)
             const pct     = total > 0 ? Math.round((onTrack / total) * 100) : 0
             const rankData = rankByClub[club.club_id] ?? []
             const latestRank = rankData[rankData.length - 1]?.club_rank
+            const isActiveClub = club.club_id === active?.club_id
 
             return (
-              <div key={club.club_id} className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
+              <ClubCardLink key={club.club_id} clubId={club.club_id}>
+              <div className={`bg-[#0d0d14] border rounded-lg p-5 transition-colors ${
+                isActiveClub ? 'border-violet-500/60 ring-1 ring-violet-500/30' : 'border-white/5 hover:border-white/15'
+              }`}>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${club.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
@@ -261,38 +203,25 @@ export default async function DashboardPage() {
                   <RankSparkline data={rankData.map(r => Number(r.club_rank))} />
                 )}
               </div>
+              </ClubCardLink>
             )
           })}
-        </div>
-
-        {/* Recent activity */}
-        <div className="md:col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-            <p className="text-sm font-medium text-white">Recent activity</p>
-            <Link href="/dashboard/quota" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">All →</Link>
-          </div>
-          <div className="divide-y divide-white/5">
-            {recent.map((e, i) => (
-              <div key={i} className="px-5 py-3 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <Link href={`/dashboard/members/${e.member_id}`}
-                    className="text-xs text-zinc-200 font-medium hover:text-white transition-colors truncate block">
-                    {e.trainer_name}
-                  </Link>
-                  <p className="text-[10px] text-zinc-600 truncate">{e.club_name} · {new Date(e.date).toLocaleDateString()}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className={`text-xs font-medium ${Number(e.deficit_surplus) >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {Number(e.deficit_surplus) >= 0 ? '+' : ''}{formatFans(Number(e.deficit_surplus))}
-                  </p>
-                  <p className="text-[10px] text-zinc-600">{formatFans(Number(e.cumulative_fans))}</p>
-                </div>
-              </div>
-            ))}
-            {recent.length === 0 && <p className="px-5 py-6 text-xs text-zinc-600">No activity yet</p>}
-          </div>
-        </div>
       </div>
+
+      {/* Editors for the selected club — admin only */}
+      {canManageEditors && active && (
+        <div>
+          <p className="text-xs text-zinc-500 mb-2">
+            Editor roles for <span className="text-zinc-300">{active.club_name}</span>
+          </p>
+          <ClubEditors clubId={active.club_id} />
+        </div>
+      )}
+
+      {/* Server-wide manager roles — Discord admins only */}
+      {isGuildDiscordAdmin && active?.guild_id && (
+        <GuildManagers guildId={active.guild_id} />
+      )}
     </div>
   )
 }

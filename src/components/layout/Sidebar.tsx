@@ -4,24 +4,44 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
-const nav = [
-  { label: 'Overview',      href: '/dashboard',          icon: LayoutDashboard },
-  { label: 'Club Overview', href: '/dashboard/clubs',    icon: BarChart3 },
-  { label: 'Members',       href: '/dashboard/members',  icon: Users },
-  { label: 'Reports',       href: '/dashboard/reports',  icon: FileBarChart2 },
-  { label: 'Quota History', href: '/dashboard/quota',    icon: ScrollText },
-  { label: 'Bombs',         href: '/dashboard/bombs',    icon: Bomb },
-  { label: 'Settings',      href: '/dashboard/settings', icon: Settings },
-  { label: 'Audit Log',     href: '/dashboard/audit-log', icon: ClipboardList },
-  { label: 'Guide',         href: '/dashboard/guide',     icon: BookOpen },
+// Always visible
+const generalNav = [
+  { label: 'Overview', href: '/dashboard',       icon: LayoutDashboard },
+  { label: 'Guide',    href: '/dashboard/guide',  icon: BookOpen },
 ]
 
-export default function Sidebar({ isOwner = false }: { isOwner?: boolean }) {
+// Shown only once a club is selected — these all scope to the active club
+const clubNav = [
+  { label: 'Club home',    href: '/dashboard/clubs',     icon: BarChart3 },
+  { label: 'Members',      href: '/dashboard/members',   icon: Users },
+  { label: 'Reports',      href: '/dashboard/reports',   icon: FileBarChart2 },
+  { label: 'Quota History',href: '/dashboard/quota',     icon: ScrollText },
+  { label: 'Bombs',        href: '/dashboard/bombs',     icon: Bomb },
+  { label: 'Settings',     href: '/dashboard/settings',  icon: Settings },
+  { label: 'Audit Log',    href: '/dashboard/audit-log', icon: ClipboardList },
+  { label: 'Editors',      href: '/dashboard/editors',   icon: KeyRound },
+]
+
+export default function Sidebar({
+  isOwner = false,
+  activeClubName = null,
+}: {
+  isOwner?: boolean
+  activeClubName?: string | null
+}) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
+
+  const linkClass = (href: string) =>
+    cn(
+      'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+      pathname === href
+        ? 'bg-violet-600/20 text-violet-300'
+        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+    )
 
   return (
     <>
@@ -61,23 +81,31 @@ export default function Sidebar({ isOwner = false }: { isOwner?: boolean }) {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {nav.map(({ label, href, icon: Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setOpen(false)}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
-                pathname === href
-                  ? 'bg-violet-600/20 text-violet-300'
-                  : 'text-zinc-400 hover:text-white hover:bg-white/5'
-              )}
-            >
+        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {generalNav.map(({ label, href, icon: Icon }) => (
+            <Link key={href} href={href} onClick={() => setOpen(false)} className={linkClass(href)}>
               <Icon size={16} />
               {label}
             </Link>
           ))}
+
+          {activeClubName ? (
+            <div className="pt-5">
+              <p className="px-3 pb-1.5 text-[10px] uppercase tracking-wide text-zinc-600 truncate" title={activeClubName}>
+                {activeClubName}
+              </p>
+              {clubNav.map(({ label, href, icon: Icon }) => (
+                <Link key={href} href={href} onClick={() => setOpen(false)} className={linkClass(href)}>
+                  <Icon size={16} />
+                  {label}
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="px-3 pt-5 text-[11px] text-zinc-600 leading-relaxed">
+              Select a club on the Overview to manage it.
+            </p>
+          )}
         </nav>
 
         <div className="px-3 py-4 border-t border-white/5 space-y-0.5">

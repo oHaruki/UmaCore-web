@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { resolveActiveClub } from '@/lib/active-club'
 
 type LogEntry = {
   id: string
@@ -21,6 +22,10 @@ const ACTION_META: Record<string, { label: string; color: string }> = {
   'member.update':     { label: 'Member updated',       color: 'bg-sky-500/15 text-sky-300' },
   'quota_req.create':  { label: 'Quota req. added',     color: 'bg-violet-500/15 text-violet-300' },
   'quota_req.delete':  { label: 'Quota req. removed',   color: 'bg-amber-500/15 text-amber-300' },
+  'club.editor.add':   { label: 'Editor role added',    color: 'bg-emerald-500/15 text-emerald-300' },
+  'club.editor.remove':{ label: 'Editor role removed',  color: 'bg-amber-500/15 text-amber-300' },
+  'guild.manager.add':    { label: 'Manager role added',   color: 'bg-emerald-500/15 text-emerald-300' },
+  'guild.manager.remove': { label: 'Manager role removed', color: 'bg-amber-500/15 text-amber-300' },
   'sync.trigger':      { label: 'Sync triggered',       color: 'bg-zinc-500/15 text-zinc-400' },
 }
 
@@ -49,6 +54,11 @@ function formatDetails(action: string, details: Record<string, unknown> | null):
       return `${details.effective_date} · ${Number(details.daily_quota).toLocaleString()} fans/day`
     case 'quota_req.delete':
       return null
+    case 'club.editor.add':
+    case 'club.editor.remove':
+    case 'guild.manager.add':
+    case 'guild.manager.remove':
+      return details.role_name ? `@${details.role_name}` : `role ${details.role_id}`
     case 'sync.trigger':
       if (details.success === false) return `failed: ${details.error ?? 'unknown'}`
       if (details.updated_members != null) return `${details.updated_members} members updated`
@@ -60,7 +70,18 @@ function formatDetails(action: string, details: Record<string, unknown> | null):
 
 export default async function AuditLogPage() {
   const session = await auth()
-  const guildIds = session?.adminGuildIds ?? []
+  const { active } = session ? await resolveActiveClub(session) : { active: null }
+
+  if (!active) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-lg font-semibold text-white">Audit Log</h1>
+        <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-5 py-10 text-center text-xs text-zinc-600">
+          No club selected. Add a club or pick one from the switcher above.
+        </div>
+      </div>
+    )
+  }
 
   const logs = await query<LogEntry>(`
     SELECT
@@ -74,17 +95,16 @@ export default async function AuditLogPage() {
       al.created_at::text
     FROM audit_logs al
     LEFT JOIN clubs c ON c.club_id = al.club_id
-    WHERE c.guild_id::text = ANY($1::text[])
-       OR al.club_id IS NULL
+    WHERE al.club_id = $1
     ORDER BY al.created_at DESC
     LIMIT 200
-  `, [guildIds]).catch(() => [] as LogEntry[])
+  `, [active.club_id]).catch(() => [] as LogEntry[])
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-lg font-semibold text-white">Audit Log</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">All admin actions across your clubs — last 200 entries</p>
+        <h1 className="text-lg font-semibold text-white">Audit Log · {active.club_name}</h1>
+        <p className="text-xs text-zinc-500 mt-0.5">Admin actions for this club — last 200 entries</p>
       </div>
 
       {logs.length === 0 ? (
