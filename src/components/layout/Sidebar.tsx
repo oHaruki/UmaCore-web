@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound, Activity } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 // Always visible
@@ -122,6 +122,21 @@ export default function Sidebar({
             >
               <ShieldAlert size={16} />
               Admin
+            </Link>
+          )}
+          {isOwner && (
+            <Link
+              href="/dashboard/admin/api-usage"
+              onClick={() => setOpen(false)}
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors',
+                pathname === '/dashboard/admin/api-usage'
+                  ? 'bg-red-600/20 text-red-300'
+                  : 'text-red-400/70 hover:text-red-300 hover:bg-red-600/10'
+              )}
+            >
+              <Activity size={16} />
+              API Usage
             </Link>
           )}
           <a
