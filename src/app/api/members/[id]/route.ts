@@ -3,8 +3,7 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
-
-const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+import { botApiFetch } from '@/lib/bot-api'
 
 export async function PATCH(
   req: NextRequest,
@@ -55,7 +54,7 @@ export async function PATCH(
   // Recalculate quota history when join_date changes since expected_fans depend on it
   if ('join_date' in body) {
     try {
-      await fetch(`${BOT_API}/recalculate`, {
+      await botApiFetch('/recalculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ club_id: memberRow[0].club_id }),

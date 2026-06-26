@@ -77,13 +77,14 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
 
 ## Bot API Connection
 
-The web app calls the UmaCore bot's internal HTTP API (default: `http://127.0.0.1:7890`) for operations like syncing club data and recalculating quota history. The bot must be running on the same machine, or `BOT_API_URL` must be set to point to wherever the bot is running:
+The web app calls the UmaCore bot's internal HTTP API (default: `http://127.0.0.1:7890`) for operations like syncing club data and recalculating quota history. The bot must be running on the same machine, or `BOT_API_URL` must be set to point to wherever the bot is running. Every request must include a shared secret:
 
 ```env
 BOT_API_URL=http://127.0.0.1:7890
+BOT_API_SECRET=your_random_secret_here
 ```
 
-This is only needed if you change the bot's API port or run them on separate hosts.
+Use the same `BOT_API_SECRET` in the bot's `.env`. Generate one with `openssl rand -hex 32`.
 
 ## Deployment
 

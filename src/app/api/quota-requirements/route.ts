@@ -3,12 +3,11 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
-
-const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+import { botApiFetch } from '@/lib/bot-api'
 
 async function triggerRecalculate(clubId: string) {
   try {
-    await fetch(`${BOT_API}/recalculate`, {
+    await botApiFetch('/recalculate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ club_id: clubId }),

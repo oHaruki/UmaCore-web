@@ -3,8 +3,7 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { isClubAdmin } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
-
-const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+import { botApiFetch } from '@/lib/bot-api'
 
 type GuildRole = { id: string; name: string; color: number; position: number; managed: boolean }
 
@@ -12,7 +11,7 @@ type GuildRole = { id: string; name: string; color: number; position: number; ma
 // isn't available (so the UI can tell "no roles" apart from "bot offline").
 async function fetchGuildRoles(guildId: string): Promise<GuildRole[] | null> {
   try {
-    const res = await fetch(`${BOT_API}/guild_roles?guild_id=${guildId}`, {
+    const res = await botApiFetch(`/guild_roles?guild_id=${guildId}`, {
       signal: AbortSignal.timeout(10000),
     })
     if (!res.ok) return null

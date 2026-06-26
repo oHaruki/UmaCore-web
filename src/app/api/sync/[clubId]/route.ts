@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { ownsClub } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
-
-const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+import { botApiFetch } from '@/lib/bot-api'
 
 // Simple in-memory rate limit: 1 sync per club per 2 minutes.
 // Works for single-instance deployments; use Redis for multi-instance.
@@ -33,7 +32,7 @@ export async function POST(
   const actorName = (session.user as { name?: string })?.name ?? 'unknown'
 
   try {
-    const res = await fetch(`${BOT_API}/sync`, {
+    const res = await botApiFetch('/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ club_id: clubId }),

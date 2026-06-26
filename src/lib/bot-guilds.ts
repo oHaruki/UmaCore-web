@@ -1,4 +1,4 @@
-const BOT_API = process.env.BOT_API_URL ?? 'http://127.0.0.1:7890'
+import { botApiFetch } from '@/lib/bot-api'
 
 export type BotGuild = { id: string; name: string }
 
@@ -8,7 +8,7 @@ export type BotGuild = { id: string; name: string }
  */
 export async function getBotGuilds(): Promise<BotGuild[] | null> {
   try {
-    const res = await fetch(`${BOT_API}/bot_guilds`, {
+    const res = await botApiFetch('/bot_guilds', {
       signal: AbortSignal.timeout(8000),
       cache: 'no-store',
     })
