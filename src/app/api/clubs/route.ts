@@ -5,6 +5,10 @@ import { logAudit } from '@/lib/audit'
 import { getBotGuildIds } from '@/lib/bot-guilds'
 import { effectiveAdminGuildIds } from '@/lib/guild-check'
 
+// Must match the bot's vocabulary exactly — quota_calculator.py silently treats an
+// unrecognised period as daily, so a typo here understates a club's quota all month.
+const QUOTA_PERIODS = ['daily', 'weekly', 'biweekly']
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -14,6 +18,16 @@ export async function POST(req: NextRequest) {
 
   if (!club_name || !guild_id || !daily_quota) {
     return NextResponse.json({ error: 'club_name, guild_id and daily_quota are required' }, { status: 400 })
+  }
+
+  // The bot rejects a non-numeric circle_id, so reject it here rather than storing
+  // a club that can never scrape.
+  if (circle_id && !/^\d+$/.test(String(circle_id))) {
+    return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
+  }
+
+  if (quota_period && !QUOTA_PERIODS.includes(quota_period)) {
+    return NextResponse.json({ error: `quota_period must be one of: ${QUOTA_PERIODS.join(', ')}` }, { status: 400 })
   }
 
   let guildIdStr: string

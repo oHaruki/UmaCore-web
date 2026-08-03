@@ -92,8 +92,10 @@ export default async function MemberProfilePage({
     ? Math.round(history.reduce((s, h) => s + Number(h.deficit_surplus), 0) / total)
     : 0
 
-  // Catch-up calculation: how much per day to recover deficit by end of month
-  const periodDays  = { daily: 1, weekly: 7, 'bi-weekly': 14 }[member.quota_period] ?? 1
+  // Catch-up calculation: how much per day to recover deficit by end of month.
+  // 'biweekly' is the canonical value the bot writes; 'bi-weekly' is tolerated so
+  // clubs saved by an older dashboard build still render correctly before migration.
+  const periodDays  = { daily: 1, weekly: 7, biweekly: 14, 'bi-weekly': 14 }[member.quota_period] ?? 1
   const perDayQuota = Number(member.daily_quota) / periodDays
   const currentDeficit = latest ? Math.max(0, -Number(latest.deficit_surplus)) : 0
   const today = new Date()

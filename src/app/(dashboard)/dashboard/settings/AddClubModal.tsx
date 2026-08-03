@@ -4,10 +4,13 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 
+// Values must match the bot exactly — services/quota_calculator.py looks the period
+// up in {'daily': 1, 'weekly': 7, 'biweekly': 14} and silently falls back to daily
+// on anything else, so a mismatch here quietly turns a 14-day quota into a daily one.
 const PERIODS = [
   { value: 'daily',    label: 'Daily' },
   { value: 'weekly',   label: 'Weekly' },
-  { value: 'bi-weekly', label: 'Bi-weekly' },
+  { value: 'biweekly', label: 'Bi-weekly' },
 ]
 
 export default function AddClubButton({ adminGuilds }: { adminGuilds: { id: string; name: string }[] }) {
@@ -140,20 +143,30 @@ export default function AddClubButton({ adminGuilds }: { adminGuilds: { id: stri
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <Field label="Circle ID *">
+                  <input required inputMode="numeric" pattern="[0-9]+" value={form.circle_id}
+                    onChange={e => set('circle_id', e.target.value)}
+                    placeholder="e.g. 860280110" className={inputCls} />
+                  <p className="mt-1.5 text-[10px] text-zinc-600">
+                    Digits only — the number at the end of your{' '}
+                    <a href="https://uma.moe/circles/" target="_blank" rel="noopener noreferrer"
+                      className="text-indigo-400 hover:text-indigo-300 transition-colors">uma.moe</a>{' '}
+                    circle URL. Without it the club falls back to the slower ChronoGenesis scraper.
+                  </p>
+                </Field>
                 <Field label="Scrape URL">
                   <input value={form.scrape_url} onChange={e => set('scrape_url', e.target.value)}
-                    placeholder="Uma.moe circle URL" className={inputCls} />
-                </Field>
-                <Field label="Circle ID">
-                  <input value={form.circle_id} onChange={e => set('circle_id', e.target.value)}
-                    placeholder="Game circle ID" className={inputCls} />
+                    placeholder="ChronoGenesis URL (optional)" className={inputCls} />
                 </Field>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Daily quota *">
+                <Field label="Quota *">
                   <input required type="number" value={form.daily_quota} onChange={e => set('daily_quota', e.target.value)}
                     placeholder="e.g. 1000000" min={0} className={inputCls} />
+                  <p className="mt-1.5 text-[10px] text-zinc-600">
+                    Fan goal per period selected on the right, not necessarily per day.
+                  </p>
                 </Field>
                 <Field label="Quota period">
                   <select value={form.quota_period} onChange={e => set('quota_period', e.target.value)} className={inputCls}>

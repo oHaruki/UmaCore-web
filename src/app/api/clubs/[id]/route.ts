@@ -18,7 +18,17 @@ export async function PATCH(
 
   const body = await req.json()
 
-  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled']
+  // Must match the bot's vocabulary exactly — quota_calculator.py silently treats an
+  // unrecognised period as daily, so a typo here understates a club's quota all month.
+  if ('quota_period' in body && !['daily', 'weekly', 'biweekly'].includes(body.quota_period)) {
+    return NextResponse.json({ error: 'quota_period must be one of: daily, weekly, biweekly' }, { status: 400 })
+  }
+
+  if (body.circle_id && !/^\d+$/.test(String(body.circle_id))) {
+    return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
+  }
+
+  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled', 'live_board_channel_id']
   const sets: string[] = []
   const vals: unknown[] = []
   let i = 1

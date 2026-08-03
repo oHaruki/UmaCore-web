@@ -20,6 +20,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
   const [bombsEnabled, setBombsEnabled]             = useState(club.bombs_enabled)
   const [publicEnabled, setPublicEnabled]           = useState(club.public_enabled)
   const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
+  const [liveBoardChannel, setLiveBoardChannel]     = useState(club.live_board_channel_id)
   const [status, setStatus]               = useState<Record<string, SaveStatus>>({})
   const [copied, setCopied]               = useState(false)
 
@@ -102,9 +103,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             label="Period"
             value={club.quota_period}
             options={[
-              { value: 'daily',     label: 'Daily' },
-              { value: 'weekly',    label: 'Weekly' },
-              { value: 'bi-weekly', label: 'Bi-weekly' },
+              { value: 'daily',    label: 'Daily' },
+              { value: 'weekly',   label: 'Weekly' },
+              { value: 'biweekly', label: 'Bi-weekly' },
             ]}
             savedStatus={fs('quota_period')}
             onChange={v => save({ quota_period: v }, 'quota_period')}
@@ -147,6 +148,35 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             onChange={v => { setImageReportEnabled(v); save({ image_report_enabled: v }, 'image_report_enabled') }}
             savedStatus={fs('image_report_enabled')}
           />
+        </div>
+      </Section>
+
+      {/* Live board */}
+      <Section title="Live board">
+        <div className="space-y-3">
+          <ChannelField
+            label="Live board channel"
+            description="A single self-editing message that tracks the competition day as it happens. Leave empty to turn it off."
+            value={liveBoardChannel}
+            savedStatus={fs('live_board_channel_id')}
+            onSave={v => {
+              const val = v || null
+              setLiveBoardChannel(val)
+              save({ live_board_channel_id: val }, 'live_board_channel_id')
+            }}
+          />
+          {liveBoardChannel && (
+            <p className="text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded px-3 py-2 leading-relaxed">
+              While the live board is on, this club&apos;s daily report moves to the competition
+              day close (15:00 UTC) regardless of the scrape time set above. Turn the board off
+              and it returns to your configured scrape time.
+            </p>
+          )}
+          <p className="text-xs text-zinc-600 leading-relaxed">
+            The board is display only — its numbers are not final while the day is still running.
+            Your daily report is unchanged and remains the only thing driving quota tracking,
+            bombs and DMs.
+          </p>
         </div>
       </Section>
 

@@ -5,9 +5,20 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.5',
+    date: 'Aug 3, 2026',
+    isNew: true,
+    entries: [
+      { type: 'fix',     text: 'Bi-weekly quota periods were saved in a format the bot did not recognise, so affected clubs were silently tracked as daily — the dashboard now writes the same value the bot reads, and rejects anything else' },
+      { type: 'feat',    text: 'Live board can now be configured from Settings — set a channel for the self-editing message that tracks the competition day as it happens, or clear it to turn the board off' },
+      { type: 'improve', text: 'Add club now requires a Circle ID and validates it is numeric, matching /add_club — clubs can no longer be created in a state where scraping cannot work' },
+      { type: 'improve', text: 'Quota field relabelled and explained as the goal per selected period rather than per day' },
+    ],
+  },
+  {
     version: '1.4',
     date: 'Jun 18, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Club editor roles — admins can assign a Discord role that lets non-admins fully manage one specific club (and create new ones), via the dashboard or /add_club_editor' },
       { type: 'feat',    text: 'Server manager roles — grant a role full management of every club in a server (create, edit, delete, assign editors), set from the Overview or /add_manager_role' },
