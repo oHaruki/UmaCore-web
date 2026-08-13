@@ -16,6 +16,10 @@ type LogEntry = {
 const ACTION_META: Record<string, { label: string; color: string }> = {
   'club.create':       { label: 'Club created',        color: 'bg-sky-500/15 text-sky-300' },
   'club.update':       { label: 'Club updated',         color: 'bg-sky-500/15 text-sky-300' },
+  'club.activate':     { label: 'Club reactivated',     color: 'bg-emerald-500/15 text-emerald-300' },
+  'club.delete':       { label: 'Club deleted',         color: 'bg-red-500/15 text-red-300' },
+  'club.recalculate':  { label: 'Recalculated',         color: 'bg-zinc-500/15 text-zinc-400' },
+  'club.reset_month':  { label: 'Month reset',          color: 'bg-red-500/15 text-red-300' },
   'member.create':     { label: 'Member added',         color: 'bg-emerald-500/15 text-emerald-300' },
   'member.deactivate': { label: 'Member deactivated',   color: 'bg-amber-500/15 text-amber-300' },
   'member.reactivate': { label: 'Member reactivated',   color: 'bg-emerald-500/15 text-emerald-300' },
@@ -53,7 +57,21 @@ function formatDetails(action: string, details: Record<string, unknown> | null):
     case 'quota_req.create':
       return `${details.effective_date} · ${Number(details.daily_quota).toLocaleString()} fans/day`
     case 'quota_req.delete':
-      return null
+      // Dashboard deletes by id and records nothing; /delete_quota targets a
+      // date + amount, so show those when they're there.
+      if (details.effective_date == null) return null
+      return `${details.effective_date} · ${Number(details.daily_quota).toLocaleString()} fans/day`
+    case 'club.activate':
+    case 'club.delete':
+    case 'club.reset_month':
+      return String(details.club_name ?? '')
+    case 'club.recalculate': {
+      const parts: string[] = [`${Number(details.rows_written ?? 0).toLocaleString()} rows rewritten`]
+      if (Number(details.fans_corrected) > 0) parts.push(`${details.fans_corrected} fan totals fixed`)
+      if (Number(details.rows_added) > 0) parts.push(`${details.rows_added} days filled`)
+      if (Number(details.join_dates_fixed) > 0) parts.push(`${details.join_dates_fixed} join dates`)
+      return parts.join(' · ')
+    }
     case 'club.editor.add':
     case 'club.editor.remove':
     case 'guild.manager.add':
@@ -83,6 +101,9 @@ export default async function AuditLogPage() {
     )
   }
 
+  // Guild-scoped actions (manager roles, club deletion) have no club_id to hang
+  // off — they're matched on details.guild_id so they show on every club page in
+  // that server rather than being invisible everywhere.
   const logs = await query<LogEntry>(`
     SELECT
       al.id,
@@ -96,9 +117,12 @@ export default async function AuditLogPage() {
     FROM audit_logs al
     LEFT JOIN clubs c ON c.club_id = al.club_id
     WHERE al.club_id = $1
+       OR ($2::text IS NOT NULL
+           AND al.club_id IS NULL
+           AND al.details->>'guild_id' = $2)
     ORDER BY al.created_at DESC
     LIMIT 200
-  `, [active.club_id]).catch(() => [] as LogEntry[])
+  `, [active.club_id, active.guild_id]).catch(() => [] as LogEntry[])
 
   return (
     <div className="space-y-6">
@@ -117,6 +141,7 @@ export default async function AuditLogPage() {
             {logs.map(log => {
               const meta = ACTION_META[log.action] ?? { label: log.action, color: 'bg-zinc-500/15 text-zinc-400' }
               const detail = formatDetails(log.action, log.details)
+              const viaDiscord = log.details?.via === 'discord'
               const ts = new Date(log.created_at)
               return (
                 <div key={log.id} className="px-5 py-3 flex items-center gap-4">
@@ -126,9 +151,10 @@ export default async function AuditLogPage() {
                     <p className="text-[10px] text-zinc-600">{ts.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
 
-                  {/* Actor */}
+                  {/* Actor — entries without a source tag predate command logging and came from the dashboard */}
                   <div className="shrink-0 w-28">
                     <p className="text-xs text-zinc-300 truncate">{log.actor_name}</p>
+                    <p className="text-[10px] text-zinc-600">{viaDiscord ? 'via command' : 'via dashboard'}</p>
                   </div>
 
                   {/* Action badge */}
