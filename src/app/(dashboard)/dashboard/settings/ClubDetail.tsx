@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Club, QuotaReq } from './page'
+import ChannelNames from './ChannelNames'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -244,6 +245,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
           />
         </div>
       </Section>
+
+      {/* Channel names */}
+      <ChannelNames clubId={club.club_id} />
 
       {/* Public sharing */}
       <Section title="Public sharing">
