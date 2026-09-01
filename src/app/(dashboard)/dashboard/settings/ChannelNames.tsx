@@ -8,7 +8,7 @@ type GuildChannel = {
   type: string
   position: number
   category: string | null
-  can_rename: boolean
+  can_rename: boolean | null
   can_post: boolean
 }
 
@@ -144,8 +144,14 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
       setNotice('Saved. The bot is offline, so the name changes on its next update.')
     } else if (r.updated) {
       setNotice('Saved and renamed.')
+    } else if (r.forbidden) {
+      setNotice(
+        'Saved, but Discord refused the rename. Open the channel’s Permissions and allow ' +
+        'Manage Channels for UmaCore’s role there — a channel or category deny overrides ' +
+        'the server-wide permission.'
+      )
     } else if (r.failed) {
-      setNotice('Saved, but the rename failed — check that the bot has Manage Channels there.')
+      setNotice('Saved, but the rename failed. It retries on the next update.')
     } else {
       setNotice('Saved. Uma.moe has no figures for this club yet, so the name is unchanged for now.')
     }
@@ -167,8 +173,9 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     const r = data.refreshed
     setNotice(
       r.updated ? `Renamed ${r.updated} channel${r.updated === 1 ? '' : 's'}.`
-        : r.failed ? 'No channel could be renamed — check the bot’s permissions.'
-          : 'Everything is already up to date.'
+        : r.forbidden ? 'Discord refused — allow Manage Channels for UmaCore on that channel.'
+          : r.failed ? 'Nothing could be renamed. It retries on the next update.'
+            : 'Everything is already up to date.'
     )
   }, [post])
 
@@ -255,9 +262,11 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                           <p className="text-[11px] text-zinc-600 font-mono truncate">{b.template}</p>
                         </>
                       )}
-                      {ch && !ch.can_rename && (
+                      {ch && ch.can_rename === false && (
                         <p className="text-[11px] text-amber-400 mt-0.5">
-                          The bot is missing Manage Channels here — it can&apos;t rename it.
+                          UmaCore may be missing <span className="text-zinc-300">Manage
+                          Channels</span> here. If the name stops updating, that&apos;s the
+                          thing to check.
                         </p>
                       )}
                     </div>
@@ -334,17 +343,20 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                     <option key={c.id} value={c.id}>
                       {TYPE_ICON[c.type] ?? '#'} {c.name}
                       {c.category ? ` — ${c.category}` : ''}
-                      {c.can_rename ? '' : ' (no permission)'}
+                      {c.can_rename === false ? ' (may lack permission)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {picked && !picked.can_rename && (
+              {picked && picked.can_rename === false && (
                 <p className="text-[11px] text-amber-400">
-                  The bot needs <span className="text-zinc-300">Manage Channels</span> in
-                  #{picked.name} before it can rename it. You can save this now and fix the
-                  permission after.
+                  UmaCore may not have <span className="text-zinc-300">Manage Channels</span> on
+                  #{picked.name}. Save anyway — it renames straight away and tells you exactly
+                  what Discord said. If that fails, open the channel&apos;s{' '}
+                  <span className="text-zinc-300">Permissions</span> and allow Manage Channels
+                  for UmaCore&apos;s role there: a channel or category <em>deny</em> overrides the
+                  server-wide permission.
                 </p>
               )}
               {picked && picked.type === 'text' && (
