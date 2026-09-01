@@ -146,21 +146,16 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     const outcome = data.outcome as { status?: string; name?: string; detail?: string } | null
 
     if (!data.refreshed) {
-      setNotice('Saved. The bot is offline, so the name changes on its next update.')
+      setNotice('Saved. UmaCore is offline, so the name changes on its next update.')
     } else if (outcome?.status === 'updated') {
       setNotice(`Saved. The channel now reads “${outcome.name}”.`)
-    } else if (outcome?.status === 'forbidden') {
-      setNotice(
-        'Saved, but Discord refused the rename for this channel. Open its Permissions and ' +
-        'allow Manage Channels for UmaCore’s role there — a channel or category deny ' +
-        'overrides the server-wide permission.'
-      )
-    } else if (outcome?.status === 'not_cached') {
-      setNotice('Saved, but I can’t see that channel — usually a missing View Channel permission.')
+    } else if (outcome?.status === 'forbidden' || outcome?.status === 'not_cached') {
+      // Nearly always the same cause, and it is not obvious: see ADD_ME below.
+      setNotice('Saved, but the rename was refused. Add UmaCore to that channel — see below.')
     } else if (outcome?.status) {
-      setNotice(`Saved, but the rename didn’t go through (${outcome.status}). It retries on the next update.`)
+      setNotice(`Saved, but the rename didn’t go through. It retries on the next update.`)
     } else {
-      setNotice('Saved. Uma.moe has no figures for this club yet, so the name is unchanged for now.')
+      setNotice('Saved. Uma.moe has no figures for this club yet, so the name is unchanged.')
     }
     setChannelId('')
   }, [channelId, template, post])
@@ -187,7 +182,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     const r = data.refreshed
     setNotice(
       r.updated ? `Renamed ${r.updated} channel${r.updated === 1 ? '' : 's'}.`
-        : r.forbidden ? 'Discord refused — allow Manage Channels for UmaCore on that channel.'
+        : r.forbidden ? 'Refused — UmaCore needs adding to that channel. See below.'
           : r.failed ? 'Nothing could be renamed. It retries on the next update.'
             : 'Everything is already up to date.'
     )
@@ -365,12 +360,8 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
 
               {picked && picked.can_rename === false && (
                 <p className="text-[11px] text-amber-400">
-                  UmaCore may not have <span className="text-zinc-300">Manage Channels</span> on
-                  #{picked.name}. Save anyway — it renames straight away and tells you exactly
-                  what Discord said. If that fails, open the channel&apos;s{' '}
-                  <span className="text-zinc-300">Permissions</span> and allow Manage Channels
-                  for UmaCore&apos;s role there: a channel or category <em>deny</em> overrides the
-                  server-wide permission.
+                  UmaCore may not be able to rename #{picked.name}. Save anyway — it renames
+                  immediately and tells you what happened.
                 </p>
               )}
               {picked && picked.type === 'text' && (
@@ -462,11 +453,25 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
               )}
             </div>
 
-            <p className="text-[11px] text-zinc-600 leading-relaxed border-t border-white/5 pt-3">
-              Discord throttles channel renames to twice per ten minutes, so a name changes at
-              most once every few minutes and only when the figures actually moved. Removing a
-              channel here leaves it with whatever name it currently has.
-            </p>
+            <div className="border-t border-white/5 pt-3 space-y-2">
+              <div className="rounded border border-white/5 bg-[#111118] px-3 py-2.5">
+                <p className="text-[11px] text-zinc-300">Not working? Add UmaCore to the channel.</p>
+                <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+                  Server-wide permissions don&apos;t reach private channels. If a channel hides
+                  itself from <span className="text-zinc-400">@everyone</span> — which the locked
+                  voice channels used for this always do — UmaCore has to be named on the channel
+                  itself:{' '}
+                  <span className="text-zinc-300">
+                    Edit Channel → Permissions → add UmaCore → allow View Channel and Manage Channel
+                  </span>.
+                </p>
+              </div>
+              <p className="text-[11px] text-zinc-600 leading-relaxed">
+                Discord throttles renames to twice per ten minutes, so a name changes at most once
+                every few minutes, and only when the figures moved. Removing a channel here leaves
+                it with whatever name it has.
+              </p>
+            </div>
           </>
         )}
       </div>
