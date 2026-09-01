@@ -16,6 +16,23 @@ type GuildChannel = {
   can_post: boolean
 }
 
+type ChannelOutcome = {
+  status: string
+  name?: string
+  code?: number
+  detail?: string
+  access?: string
+  timeout?: string | null
+}
+
+type RefreshResult = {
+  updated: number
+  failed: number
+  forbidden: number
+  source: string | null
+  per_channel?: Record<string, ChannelOutcome>
+}
+
 type Binding = {
   channel_id: string
   template: string
@@ -121,14 +138,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   // The "update now" button: no binding to save, just rewrite the names.
   if (refresh_only) {
-    const now = await botJson<{ updated: number; failed: number; source: string | null }>(
-      '/channel_names/refresh',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ club_id: id }),
-      }
-    )
+    const now = await botJson<RefreshResult>('/channel_names/refresh', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ club_id: id }),
+    })
     if (!now)
       return NextResponse.json({ error: 'Bot unreachable' }, { status: 503 })
     return NextResponse.json({ ok: true, refreshed: now, bindings: await bindings(id) })
@@ -174,14 +188,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     details: { changes: { channel_name: text, channel_id: String(channel_id) } },
   })
 
-  const refresh = await botJson<{ updated: number; failed: number; source: string | null }>(
-    '/channel_names/refresh',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ club_id: id }),
-    }
-  )
+  // Scoped to this channel: a club-wide refresh would let another channel's
+  // rename be reported as this one's, and would spend its rename budget too.
+  const refresh = await botJson<RefreshResult>('/channel_names/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ club_id: id, channel_id: String(channel_id) }),
+  })
 
   return NextResponse.json({
     ok: true,
@@ -189,6 +202,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // null means the bot could not be reached — the binding is still saved and
     // the next scheduled update will pick it up.
     refreshed: refresh,
+    // What happened to *this* channel, rather than to the club as a whole.
+    outcome: refresh?.per_channel?.[String(channel_id)] ?? null,
     bindings: await bindings(id),
   })
 }

@@ -139,19 +139,26 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     if (!channelId || !template.trim()) return
     const data = await post({ channel_id: channelId, template })
     if (!data) return
-    const r = data.refreshed
-    if (!r) {
+
+    // Read this channel's own outcome. The club-wide tally used to stand in for
+    // it, so a different channel renaming successfully in the same pass reported
+    // this one as working when Discord had refused it.
+    const outcome = data.outcome as { status?: string; name?: string; detail?: string } | null
+
+    if (!data.refreshed) {
       setNotice('Saved. The bot is offline, so the name changes on its next update.')
-    } else if (r.updated) {
-      setNotice('Saved and renamed.')
-    } else if (r.forbidden) {
+    } else if (outcome?.status === 'updated') {
+      setNotice(`Saved. The channel now reads “${outcome.name}”.`)
+    } else if (outcome?.status === 'forbidden') {
       setNotice(
-        'Saved, but Discord refused the rename. Open the channel’s Permissions and allow ' +
-        'Manage Channels for UmaCore’s role there — a channel or category deny overrides ' +
-        'the server-wide permission.'
+        'Saved, but Discord refused the rename for this channel. Open its Permissions and ' +
+        'allow Manage Channels for UmaCore’s role there — a channel or category deny ' +
+        'overrides the server-wide permission.'
       )
-    } else if (r.failed) {
-      setNotice('Saved, but the rename failed. It retries on the next update.')
+    } else if (outcome?.status === 'not_cached') {
+      setNotice('Saved, but I can’t see that channel — usually a missing View Channel permission.')
+    } else if (outcome?.status) {
+      setNotice(`Saved, but the rename didn’t go through (${outcome.status}). It retries on the next update.`)
     } else {
       setNotice('Saved. Uma.moe has no figures for this club yet, so the name is unchanged for now.')
     }
@@ -164,7 +171,14 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     const data = await post({ channel_id: channelId, template: text })
     if (!data) return
     setEditing(null)
-    setNotice(data.refreshed?.updated ? 'Renamed.' : 'Saved.')
+    const outcome = data.outcome as { status?: string; name?: string } | null
+    setNotice(
+      outcome?.status === 'updated'
+        ? `Renamed to “${outcome.name}”.`
+        : outcome?.status === 'forbidden'
+          ? 'Saved, but Discord refused the rename for this channel.'
+          : 'Saved.'
+    )
   }, [editText, post])
 
   const refreshNow = useCallback(async () => {
