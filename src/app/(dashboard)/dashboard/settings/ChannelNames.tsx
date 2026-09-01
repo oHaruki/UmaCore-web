@@ -10,6 +10,7 @@ type GuildChannel = {
   category: string | null
   can_rename: boolean | null
   can_post: boolean
+  needs_connect?: boolean
 }
 
 type Binding = {
@@ -364,6 +365,13 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                   immediately and tells you what happened.
                 </p>
               )}
+              {picked && picked.needs_connect && (
+                <p className="text-[11px] text-amber-400">
+                  This is a voice channel, so UmaCore also needs <span className="text-zinc-300">
+                  Connect</span> on it — Discord blocks renaming a voice channel you can&apos;t
+                  join. Everyone else can stay locked out.
+                </p>
+              )}
               {picked && picked.type === 'text' && (
                 <p className="text-[11px] text-amber-400">
                   Discord lowercases text-channel names and turns spaces into hyphens. A voice
@@ -455,15 +463,20 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
 
             <div className="border-t border-white/5 pt-3 space-y-2">
               <div className="rounded border border-white/5 bg-[#111118] px-3 py-2.5">
-                <p className="text-[11px] text-zinc-300">Not working? Add UmaCore to the channel.</p>
+                <p className="text-[11px] text-zinc-300">
+                  Voice channels also need <span className="text-amber-400">Connect</span>.
+                </p>
                 <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
-                  Server-wide permissions don&apos;t reach private channels. If a channel hides
-                  itself from <span className="text-zinc-400">@everyone</span> — which the locked
-                  voice channels used for this always do — UmaCore has to be named on the channel
-                  itself:{' '}
+                  Discord won&apos;t let anyone rename a voice channel they can&apos;t join — even
+                  with Manage Channel. A display VC is usually locked by denying Connect to
+                  everyone, which locks UmaCore out too. Allow it for UmaCore specifically and
+                  everyone else stays locked out:{' '}
                   <span className="text-zinc-300">
-                    Edit Channel → Permissions → add UmaCore → allow View Channel and Manage Channel
-                  </span>.
+                    Edit Channel → Permissions → add UmaCore → allow View Channel, Connect and
+                    Manage Channel
+                  </span>. Server-wide permissions don&apos;t reach a channel that denies
+                  <span className="text-zinc-400"> @everyone</span>, so UmaCore has to be named on
+                  the channel itself.
                 </p>
               </div>
               <p className="text-[11px] text-zinc-600 leading-relaxed">
