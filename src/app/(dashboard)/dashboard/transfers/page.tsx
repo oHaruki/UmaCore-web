@@ -84,7 +84,7 @@ export default async function TransfersPage({
       <div>
         <h1 className="text-lg font-semibold text-white">Transfers · {active.club_name}</h1>
         <p className="text-xs text-zinc-500 mt-0.5">
-          People waiting for a spot in this club. Members join the queue with <code className="text-zinc-400">/transfer_request</code>.
+          People waiting for a spot in this club. Members join the queue with <code className="text-zinc-400">/transfer_request</code>, which reads their trainer details from <code className="text-zinc-400">/link_trainer</code>.
         </p>
       </div>
 

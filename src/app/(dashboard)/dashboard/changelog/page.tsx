@@ -10,6 +10,7 @@ const CHANGELOG: {
     isNew: true,
     entries: [
       { type: 'feat',    text: 'Transfer queue — members ask for a spot in another club with /transfer_request instead of posting their trainer ID in a channel and pinging a mod; the request stays on a waiting list until a leader decides' },
+      { type: 'improve', text: 'Requests read the trainer name, ID and current club straight from /link_trainer, so there is nothing to type — and no mistyped ID for a leader to send an invite into' },
       { type: 'feat',    text: 'Transfers page — review the queue for your club, see how long each person has been waiting, and approve or decline with an optional reason that reaches the requester' },
       { type: 'feat',    text: 'Approved trainers get a DM telling them to check their in-game notifications for the new invite; declined ones get the reason, so nobody is left refreshing the club list' },
       { type: 'feat',    text: 'Leaders review in one place — /transfer_queue opens a single panel to pick and decide, rather than a pair of buttons per request cluttering a channel' },

@@ -197,8 +197,10 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             }}
           />
           <p className="text-xs text-zinc-600 leading-relaxed">
-            Members queue up with <code className="text-zinc-500">/transfer_request</code>. Approve
-            or decline them on the Transfers page or with{' '}
+            Members queue up with <code className="text-zinc-500">/transfer_request</code>, which
+            takes their trainer name and ID from{' '}
+            <code className="text-zinc-500">/link_trainer</code> — so a linked trainer is required
+            and there is no ID to mistype. Approve or decline them on the Transfers page or with{' '}
             <code className="text-zinc-500">/transfer_queue</code> — announcements carry no buttons,
             so decisions stay in one place. Approving DMs the requester to check their in-game invites.
           </p>
