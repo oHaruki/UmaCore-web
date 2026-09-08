@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { isClubAdmin, effectiveAdminGuildIds } from '@/lib/guild-check'
 import { resolveActiveClub } from '@/lib/active-club'
 import { getBotGuilds } from '@/lib/bot-guilds'
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
 
   const [clubStats, rankHistory] = await Promise.all([
     query<ClubStat>(`
-      SELECT c.club_id, c.club_name, c.daily_quota::text, c.quota_period, c.is_active,
+      SELECT c.club_id, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota, c.quota_period, c.is_active,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_count,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus >= 0)::text AS on_track,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus < 0)::text AS behind

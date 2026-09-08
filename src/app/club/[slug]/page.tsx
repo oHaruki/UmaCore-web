@@ -1,4 +1,5 @@
 import { query, queryOne } from '@/lib/db'
+import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -42,8 +43,9 @@ export default async function PublicClubPage(
   const { slug } = await params
 
   const club = await queryOne<PublicClub>(`
-    SELECT club_id::text, club_name, daily_quota::text, quota_period, bombs_enabled, public_enabled
-    FROM clubs WHERE public_slug = $1
+    SELECT c.club_id::text, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota,
+           c.quota_period, c.bombs_enabled, c.public_enabled
+    FROM clubs c WHERE c.public_slug = $1
   `, [slug]).catch(() => null)
 
   if (!club || !club.public_enabled) notFound()

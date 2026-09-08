@@ -1,5 +1,6 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { accessibleClubIds } from '@/lib/guild-check'
 import { getActiveClubId } from '@/lib/active-club'
 import { redirect } from 'next/navigation'
@@ -80,7 +81,7 @@ export default async function ClubOverviewPage({
 
   const [clubRows, members, compliance, rankHistory, bombStatRows] = await Promise.all([
     query<ClubDetail>(`
-      SELECT c.club_id::text, c.club_name, c.daily_quota::text, c.quota_period,
+      SELECT c.club_id::text, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota, c.quota_period,
         c.is_active, c.bombs_enabled,
         c.bomb_trigger_days::text, c.bomb_countdown_days::text,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_members,

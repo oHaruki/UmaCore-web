@@ -113,8 +113,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             onChange={v => save({ quota_period: v }, 'quota_period')}
           />
           <NumberField
-            label="Daily quota"
+            label="Default quota"
             value={Number(club.daily_quota)}
+            hint="Falls back to this only when no dated change below applies — set the live quota with /quota or in Quota history."
             savedStatus={fs('daily_quota')}
             onSave={v => save({ daily_quota: v }, 'daily_quota')}
           />
