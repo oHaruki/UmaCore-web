@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound, Activity } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound, Activity, ArrowLeftRight } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 // Always visible
@@ -17,6 +17,7 @@ const generalNav = [
 const clubNav = [
   { label: 'Club home',    href: '/dashboard/clubs',     icon: BarChart3 },
   { label: 'Members',      href: '/dashboard/members',   icon: Users },
+  { label: 'Transfers',    href: '/dashboard/transfers', icon: ArrowLeftRight },
   { label: 'Reports',      href: '/dashboard/reports',   icon: FileBarChart2 },
   { label: 'Quota History',href: '/dashboard/quota',     icon: ScrollText },
   { label: 'Bombs',        href: '/dashboard/bombs',     icon: Bomb },

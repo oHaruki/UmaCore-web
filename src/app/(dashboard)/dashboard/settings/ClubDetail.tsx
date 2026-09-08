@@ -22,6 +22,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
   const [publicEnabled, setPublicEnabled]           = useState(club.public_enabled)
   const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
   const [liveBoardChannel, setLiveBoardChannel]     = useState(club.live_board_channel_id)
+  const [transferChannel, setTransferChannel]       = useState(club.transfer_channel_id)
   const [status, setStatus]               = useState<Record<string, SaveStatus>>({})
   const [copied, setCopied]               = useState(false)
 
@@ -177,6 +178,29 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             The board is display only — its numbers are not final while the day is still running.
             Your daily report is unchanged and remains the only thing driving quota tracking,
             bombs and DMs.
+          </p>
+        </div>
+      </Section>
+
+      {/* Transfers */}
+      <Section title="Transfers">
+        <div className="space-y-3">
+          <ChannelField
+            label="Transfer requests channel"
+            description="Where new requests are announced. Leave empty for no announcement — the queue still works."
+            value={transferChannel}
+            savedStatus={fs('transfer_channel_id')}
+            onSave={v => {
+              const val = v || null
+              setTransferChannel(val)
+              save({ transfer_channel_id: val }, 'transfer_channel_id')
+            }}
+          />
+          <p className="text-xs text-zinc-600 leading-relaxed">
+            Members queue up with <code className="text-zinc-500">/transfer_request</code>. Approve
+            or decline them on the Transfers page or with{' '}
+            <code className="text-zinc-500">/transfer_queue</code> — announcements carry no buttons,
+            so decisions stay in one place. Approving DMs the requester to check their in-game invites.
           </p>
         </div>
       </Section>

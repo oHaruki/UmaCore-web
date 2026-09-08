@@ -27,6 +27,7 @@ export type Club = {
   public_slug: string | null
   image_report_enabled: boolean
   live_board_channel_id: string | null
+  transfer_channel_id: string | null
 }
 
 export type QuotaReq = {
@@ -54,7 +55,7 @@ export default async function SettingsPage() {
                monthly_info_channel_id::text,
                scrape_url, circle_id, guild_id::text,
                public_enabled, public_slug, image_report_enabled,
-               live_board_channel_id::text
+               live_board_channel_id::text, transfer_channel_id::text
         FROM clubs WHERE club_id = $1
       `, [active.club_id]).catch(() => [])
     : []

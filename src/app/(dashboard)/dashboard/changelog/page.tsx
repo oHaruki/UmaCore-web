@@ -5,9 +5,22 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.6',
+    date: 'Sep 8, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Transfer queue — members ask for a spot in another club with /transfer_request instead of posting their trainer ID in a channel and pinging a mod; the request stays on a waiting list until a leader decides' },
+      { type: 'feat',    text: 'Transfers page — review the queue for your club, see how long each person has been waiting, and approve or decline with an optional reason that reaches the requester' },
+      { type: 'feat',    text: 'Approved trainers get a DM telling them to check their in-game notifications for the new invite; declined ones get the reason, so nobody is left refreshing the club list' },
+      { type: 'feat',    text: 'Leaders review in one place — /transfer_queue opens a single panel to pick and decide, rather than a pair of buttons per request cluttering a channel' },
+      { type: 'improve', text: 'Queue position is order of arrival, not a rule — anyone on the list can be approved out of order' },
+      { type: 'improve', text: 'Optional transfer requests channel per club (Settings, or /set_transfer_channel) announces new requests and updates each one to show how it was decided' },
+    ],
+  },
+  {
     version: '1.5',
     date: 'Aug 3, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'fix',     text: 'Bi-weekly quota periods were saved in a format the bot did not recognise, so affected clubs were silently tracked as daily — the dashboard now writes the same value the bot reads, and rejects anything else' },
       { type: 'feat',    text: 'Live board can now be configured from Settings — set a channel for the self-editing message that tracks the competition day as it happens, or clear it to turn the board off' },
