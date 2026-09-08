@@ -16,6 +16,7 @@ const CHANGELOG: {
       { type: 'feat',    text: 'Leaders review in one place — /transfer_queue opens a single panel to pick and decide, rather than a pair of buttons per request cluttering a channel' },
       { type: 'improve', text: 'Queue position is order of arrival, not a rule — anyone on the list can be approved out of order' },
       { type: 'improve', text: 'Optional transfer requests channel per club (Settings, or /set_transfer_channel) announces new requests and updates each one to show how it was decided' },
+      { type: 'feat',    text: '/post_transfer_info posts a pinnable guide walking members through linking, requesting and waiting for the DM, listing the clubs they can request' },
     ],
   },
   {
