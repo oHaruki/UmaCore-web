@@ -58,7 +58,12 @@ Web dashboard companion for [UmaCore](https://github.com/oHaruki/UmaCore). Provi
 
    AUTH_SECRET=                  # generate with: npx auth secret
    NEXTAUTH_URL=http://localhost:3000
+
+   BOT_API_URL=http://127.0.0.1:7890
+   BOT_API_SECRET=your_random_secret_here   # same value as in the bot's .env
    ```
+
+   Generate `BOT_API_SECRET` with `openssl rand -hex 32`.
 
 4. **Set up Discord OAuth**
    - Go to [Discord Developer Portal](https://discord.com/developers/applications)
