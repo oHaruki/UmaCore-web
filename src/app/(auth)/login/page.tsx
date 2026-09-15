@@ -69,12 +69,12 @@ export default async function LoginPage() {
               <div>
                 <h1 className="text-2xl font-semibold text-white leading-snug">Welcome back</h1>
                 <p className="mt-1.5 text-sm text-zinc-500 leading-relaxed">
-                  Sign in to manage your club quota, members, and reports.
+                  Sign in to manage your club, or to check your own quota progress.
                 </p>
               </div>
               <LoginButton />
               <p className="text-xs text-zinc-600">
-                Only club administrators can sign in.
+                Members see their own trainer after linking it with /link_trainer in Discord.
               </p>
             </div>
 

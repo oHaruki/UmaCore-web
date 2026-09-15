@@ -4,13 +4,14 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound, Activity, ArrowLeftRight } from 'lucide-react'
+import { LayoutDashboard, Users, ScrollText, Settings, LogOut, Bomb, FileBarChart2, BarChart3, Sparkles, ClipboardList, BookOpen, Menu, X, PlusCircle, ShieldAlert, KeyRound, Activity, ArrowLeftRight, UserRound } from 'lucide-react'
 import { signOut } from 'next-auth/react'
 
 // Always visible
 const generalNav = [
-  { label: 'Overview', href: '/dashboard',       icon: LayoutDashboard },
-  { label: 'Guide',    href: '/dashboard/guide',  icon: BookOpen },
+  { label: 'Overview',   href: '/dashboard',       icon: LayoutDashboard },
+  { label: 'My trainer', href: '/dashboard/me',    icon: UserRound },
+  { label: 'Guide',      href: '/dashboard/guide', icon: BookOpen },
 ]
 
 // Shown only once a club is selected — these all scope to the active club
@@ -29,9 +30,11 @@ const clubNav = [
 export default function Sidebar({
   isOwner = false,
   activeClubName = null,
+  managesClubs = false,
 }: {
   isOwner?: boolean
   activeClubName?: string | null
+  managesClubs?: boolean
 }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -102,11 +105,11 @@ export default function Sidebar({
                 </Link>
               ))}
             </div>
-          ) : (
+          ) : managesClubs ? (
             <p className="px-3 pt-5 text-[11px] text-zinc-600 leading-relaxed">
               Select a club on the Overview to manage it.
             </p>
-          )}
+          ) : null}
         </nav>
 
         <div className="px-3 py-4 border-t border-white/5 space-y-0.5">

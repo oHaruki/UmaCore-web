@@ -1,5 +1,7 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { isClubAdmin, effectiveAdminGuildIds } from '@/lib/guild-check'
 import { resolveActiveClub } from '@/lib/active-club'
@@ -24,6 +26,14 @@ export default async function DashboardPage() {
     ? await resolveActiveClub(session)
     : { active: null, clubs: [] }
   const clubIds = accessibleClubs.map(c => c.club_id)
+
+  // Someone who manages no clubs but has linked a trainer came to see their own progress.
+  if (!accessibleClubs.length && session && /^\d+$/.test(session.user.id)) {
+    const linked = await query(
+      'SELECT 1 FROM user_links WHERE discord_user_id = $1::bigint', [session.user.id]
+    ).catch(() => [])
+    if (linked.length) redirect('/dashboard/me')
+  }
   const canManageEditors = session && active ? await isClubAdmin(session, active.club_id) : false
   // Manager-role assignment is Discord-admin-only (no manager self-escalation).
   const isGuildDiscordAdmin = !!(active?.guild_id && session?.adminGuildIds?.includes(active.guild_id))
@@ -96,6 +106,9 @@ export default async function DashboardPage() {
           <h2 className="text-xl font-semibold text-white mb-2">Welcome to UmaCore</h2>
           <p className="text-sm text-zinc-500 max-w-sm mb-8">
             You don&apos;t have any clubs connected yet. Invite the Discord bot to your server to get started.
+          </p>
+          <p className="text-xs text-zinc-600 max-w-sm -mt-5 mb-8">
+            Just a member? Link your trainer with <code className="text-zinc-400">/link_trainer</code> and open <Link href="/dashboard/me" className="text-violet-400 hover:text-violet-300">My trainer</Link>.
           </p>
 
           <a

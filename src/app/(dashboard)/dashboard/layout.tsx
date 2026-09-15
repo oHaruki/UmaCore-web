@@ -15,7 +15,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-white">
       <WelcomeModal />
-      <Sidebar isOwner={session.isOwner ?? false} activeClubName={active?.club_name ?? null} />
+      <Sidebar
+        isOwner={session.isOwner ?? false}
+        activeClubName={active?.club_name ?? null}
+        managesClubs={clubs.length > 0}
+      />
       <main className="md:ml-56 p-4 pt-16 md:p-8 md:pt-8">
         {clubs.length > 0 && (
           <div className="flex justify-end mb-4">

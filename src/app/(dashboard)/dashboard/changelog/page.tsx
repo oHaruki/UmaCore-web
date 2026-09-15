@@ -5,9 +5,22 @@ const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.7',
+    date: 'Sep 15, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'My trainer — members sign in with Discord and see their own progress: surplus or deficit, fans this month, place in the club, and the daily figure they need' },
+      { type: 'feat',    text: 'Month-end projection from your recent pace, shown against the target you need to finish on' },
+      { type: 'feat',    text: 'Bomb status in plain terms — days left and the extra fans a day that clears it, or how many days behind you are before one starts' },
+      { type: 'feat',    text: 'Turn bomb and deficit DMs on or off from the page, the same settings as /notification_settings' },
+      { type: 'feat',    text: 'Your transfer requests with queue position and the decision note, once a leader decides' },
+      { type: 'improve', text: 'Signing in without any clubs to manage now opens My trainer if you have linked one, instead of the invite-the-bot screen' },
+    ],
+  },
+  {
     version: '1.6',
     date: 'Sep 8, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Transfer queue — members ask for a spot in another club with /transfer_request instead of posting their trainer ID in a channel and pinging a mod; the request stays on a waiting list until a leader decides' },
       { type: 'improve', text: 'Requests read the trainer name, ID and current club straight from /link_trainer, so there is nothing to type — and no mistyped ID for a leader to send an invite into' },
