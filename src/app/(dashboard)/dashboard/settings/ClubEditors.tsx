@@ -89,27 +89,27 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
     .sort((a, b) => b.position - a.position)
 
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/5">
-        <p className="text-xs font-medium text-zinc-400">Club editors</p>
+    <div className="panel overflow-hidden">
+      <div className="px-5 pt-4">
+        <h2 className="text-[15px] font-semibold text-fg">Club editors</h2>
       </div>
       <div className="px-5 py-4 space-y-4">
-        <p className="text-xs text-zinc-500 leading-relaxed">
+        <p className="text-xs text-fg-muted leading-relaxed">
           Anyone with one of these roles can manage this club — edit settings, channels, quota and
-          members — both here and in Discord. They <span className="text-zinc-400">cannot</span> delete
+          members — both here and in Discord. They <span className="text-fg-muted">cannot</span> delete
           the club (admin only). Holding an editor role also lets them create new clubs.
         </p>
 
         {state.loading ? (
-          <p className="text-xs text-zinc-600">Loading…</p>
+          <p className="text-xs text-fg-subtle">Loading…</p>
         ) : state.error ? (
-          <p className="text-xs text-red-400">{state.error}</p>
+          <p className="text-xs text-bad">{state.error}</p>
         ) : !state.botReachable ? (
-          <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
-            <p className="text-xs text-amber-400">Bot offline</p>
-            <p className="text-[11px] text-zinc-500 mt-0.5">
+          <div className="rounded border border-warn/20 bg-warn/5 px-3 py-2.5">
+            <p className="text-xs text-warn">Bot offline</p>
+            <p className="text-xs text-fg-muted mt-0.5">
               Can&apos;t load this server&apos;s roles right now. You can still assign editors in Discord
-              with <span className="font-mono text-zinc-400">/add_club_editor</span>.
+              with <span className="font-mono text-fg-muted">/add_club_editor</span>.
             </p>
           </div>
         ) : (
@@ -117,22 +117,22 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
             {/* Current editor roles */}
             <div className="flex flex-wrap gap-2">
               {state.editors.length === 0 && (
-                <span className="text-xs text-zinc-600">No editor roles yet — only admins can manage this club.</span>
+                <span className="text-xs text-fg-subtle">No editor roles yet — only admins can manage this club.</span>
               )}
               {state.editors.map(id => {
                 const role = roleById(id)
                 return (
                   <span
                     key={id}
-                    className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-white/5 border border-white/10 text-xs"
+                    className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-surface-3 border border-line-strong text-xs"
                   >
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: role ? roleColor(role.color) : '#71717a' }} />
-                    <span className="text-zinc-200">{role ? role.name : `Unknown role (${id})`}</span>
+                    <span className="text-fg-soft">{role ? role.name : `Unknown role (${id})`}</span>
                     <button
                       onClick={() => removeRole(id, role?.name)}
                       disabled={busy}
                       title="Remove"
-                      className="w-4 h-4 rounded-full text-zinc-500 hover:text-white hover:bg-white/10 flex items-center justify-center disabled:opacity-40 transition-colors"
+                      className="w-4 h-4 rounded-full text-fg-muted hover:text-fg hover:bg-surface-3 flex items-center justify-center disabled:opacity-40 transition-colors"
                     >
                       ×
                     </button>
@@ -142,12 +142,12 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
             </div>
 
             {/* Add a role */}
-            <div className="flex items-center gap-2 border-t border-white/5 pt-4">
+            <div className="flex items-center gap-2 border-t border-line pt-4">
               <select
                 value={pendingRole}
                 onChange={e => setPendingRole(e.target.value)}
                 disabled={busy || available.length === 0}
-                className="flex-1 min-w-0 bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors disabled:opacity-50"
+                className="flex-1 min-w-0 bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg outline-none focus:border-brand/60 transition-colors disabled:opacity-50"
               >
                 <option value="">
                   {available.length === 0 ? 'All roles already added' : 'Select a role to add…'}
@@ -159,7 +159,7 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
               <button
                 onClick={() => addRole(pendingRole, roleById(pendingRole)?.name)}
                 disabled={busy || !pendingRole}
-                className="px-3 py-2 text-xs bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors shrink-0"
+                className="px-3 py-2 text-xs bg-brand-solid hover:bg-brand-solid-hover disabled:opacity-40 disabled:cursor-not-allowed text-brand-ink rounded transition-colors shrink-0"
               >
                 Add
               </button>

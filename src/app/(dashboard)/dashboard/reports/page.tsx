@@ -2,6 +2,9 @@ import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { resolveActiveClub } from '@/lib/active-club'
 import Link from 'next/link'
+import { ChevronLeft, ChevronRight, CalendarX2, AlertTriangle } from 'lucide-react'
+import { formatDay, formatDelta, formatFans } from '@/lib/format'
+import { PageHeader, Chip, EmptyState, NoClub, Avatar } from '@/components/dash/ui'
 import SyncButton from './SyncButton'
 
 type Entry = {
@@ -24,13 +27,6 @@ type ClubInfo = {
   missing_days: number
 }
 
-function formatFans(n: number) {
-  const abs = Math.abs(n), sign = n < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000)     return `${sign}${(abs / 1_000).toFixed(0)}K`
-  return String(n)
-}
-
 export default async function ReportsPage({
   searchParams,
 }: {
@@ -41,16 +37,7 @@ export default async function ReportsPage({
   const session = await auth()
   const { active } = session ? await resolveActiveClub(session) : { active: null }
 
-  if (!active) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-white">Daily Report</h1>
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-10 text-center text-xs text-zinc-600">
-          No club selected. Add a club or pick one from the switcher above.
-        </div>
-      </div>
-    )
-  }
+  if (!active) return <NoClub title="Daily report" />
 
   const dates = await query<{ date: string }>(
     `SELECT DISTINCT qh.date::text AS date
@@ -124,53 +111,48 @@ export default async function ReportsPage({
     ;(byClub[e.club_id] ??= []).push(e)
   }
 
-  const fmtDate = (d: string) =>
-    new Date(d + 'T00:00:00').toLocaleDateString('en-US', {
-      month: 'short', day: 'numeric', year: 'numeric',
-    })
+  const stepCls = 'grid size-9 place-items-center rounded-[10px] transition-colors'
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">Daily Report</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Quota status snapshot by club</p>
-        </div>
+    <div className="rise space-y-6">
+      <PageHeader
+        title="Daily report"
+        description="Who was on track at each daily check. Step back through up to 90 days."
+        actions={
+          <div className="flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
+            {prevDate ? (
+              <Link href={`?date=${prevDate}`} className={`${stepCls} text-fg-muted hover:bg-surface-2 hover:text-fg`} aria-label="Previous day">
+                <ChevronLeft size={16} strokeWidth={1.75} />
+              </Link>
+            ) : (
+              <span className={`${stepCls} text-fg-subtle/40`} aria-hidden><ChevronLeft size={16} strokeWidth={1.75} /></span>
+            )}
+            <span className="num min-w-36 px-2 text-center text-[13px] font-medium text-fg">
+              {selectedDate ? formatDay(selectedDate, { weekday: 'short', month: 'short', day: 'numeric' }) : 'No data'}
+              {selectedDate === latestDate && selectedDate && <span className="ml-1.5 text-xs font-normal text-brand">latest</span>}
+            </span>
+            {nextDate ? (
+              <Link href={`?date=${nextDate}`} className={`${stepCls} text-fg-muted hover:bg-surface-2 hover:text-fg`} aria-label="Next day">
+                <ChevronRight size={16} strokeWidth={1.75} />
+              </Link>
+            ) : (
+              <span className={`${stepCls} text-fg-subtle/40`} aria-hidden><ChevronRight size={16} strokeWidth={1.75} /></span>
+            )}
+          </div>
+        }
+      />
 
-        {/* Date navigation */}
-        <div className="flex items-center gap-1.5">
-          {prevDate ? (
-            <Link href={`?date=${prevDate}`}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[#0d0d14] border border-white/5 text-zinc-400 hover:text-white transition-colors">
-              ← Prev
-            </Link>
-          ) : (
-            <span className="px-3 py-1.5 text-xs rounded-lg bg-[#0d0d14] border border-white/5 text-zinc-700">← Prev</span>
-          )}
-          <span className="px-4 py-1.5 text-xs rounded-lg bg-[#0d0d14] border border-white/5 text-white font-medium min-w-[130px] text-center">
-            {selectedDate ? fmtDate(selectedDate) : '—'}
-          </span>
-          {nextDate ? (
-            <Link href={`?date=${nextDate}`}
-              className="px-3 py-1.5 text-xs rounded-lg bg-[#0d0d14] border border-white/5 text-zinc-400 hover:text-white transition-colors">
-              Next →
-            </Link>
-          ) : (
-            <span className="px-3 py-1.5 text-xs rounded-lg bg-[#0d0d14] border border-white/5 text-zinc-700">Next →</span>
-          )}
-        </div>
-      </div>
-
-      {/* Empty state */}
       {!selectedDate && (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-12 text-center">
-          <p className="text-sm text-zinc-400 mb-1">No quota data yet</p>
-          <p className="text-xs text-zinc-700">Use the Sync button on a club to pull data from uma.moe</p>
+        <div className="panel">
+          <EmptyState
+            icon={CalendarX2}
+            title="No quota data yet"
+            body="Sync the club to pull its numbers from uma.moe."
+            action={clubs[0] && <SyncButton clubId={clubs[0].club_id} hasCircleId={!!clubs[0].circle_id} />}
+          />
         </div>
       )}
 
-      {/* Per-club reports */}
       {clubs.map(club => {
         const clubEntries = byClub[club.club_id] ?? []
         const onTrack = clubEntries.filter(e => Number(e.deficit_surplus) >= 0)
@@ -178,113 +160,91 @@ export default async function ReportsPage({
         const bombCount = clubEntries.filter(e => e.bomb_active).length
 
         return (
-          <div key={club.club_id} className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-            {/* Club header */}
-            <div className="px-5 py-4 border-b border-white/5">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                  <p className="text-sm font-medium text-white">{club.club_name}</p>
-                  <span className="text-xs text-zinc-600 capitalize">{club.quota_period}</span>
-                  <span className="text-xs text-zinc-600">{formatFans(Number(club.daily_quota))}/day</span>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="flex items-center gap-2 text-xs">
-                    <span className="text-emerald-400">{onTrack.length} on track</span>
-                    <span className="text-zinc-700">·</span>
-                    <span className="text-amber-400">{behind.length} behind</span>
-                    {bombCount > 0 && (
-                      <><span className="text-zinc-700">·</span>
-                      <span className="text-red-400">💣 {bombCount}</span></>
-                    )}
-                  </div>
-                  <SyncButton clubId={club.club_id} hasCircleId={!!club.circle_id} />
+          <section key={club.club_id} className="panel overflow-hidden">
+            <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <h2 className="truncate text-[15px] font-semibold text-fg">{club.club_name}</h2>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <Chip tone="good">{onTrack.length} on track</Chip>
+                  <Chip tone={behind.length ? 'warn' : 'neutral'}>{behind.length} behind</Chip>
+                  {bombCount > 0 && <Chip tone="bad">💣 {bombCount}</Chip>}
                 </div>
               </div>
-
-              {club.missing_days > 0 && (
-                <p className="mt-2 text-xs text-amber-500/80">
-                  ⚠ {club.missing_days} day{club.missing_days !== 1 ? 's' : ''} missing this month — hit Sync to backfill
-                </p>
-              )}
+              <SyncButton clubId={club.club_id} hasCircleId={!!club.circle_id} />
             </div>
 
-            {/* No data for this date */}
-            {clubEntries.length === 0 && selectedDate && (
-              <p className="px-5 py-6 text-xs text-zinc-600 text-center">
-                No data for this date — sync to pull latest from uma.moe
+            {club.missing_days > 0 && (
+              <p className="flex items-center gap-2 border-t border-line bg-warn/6 px-5 py-2.5 text-[13px] text-warn">
+                <AlertTriangle size={14} strokeWidth={1.75} />
+                {club.missing_days} day{club.missing_days !== 1 ? 's' : ''} missing this month. Sync to backfill them.
               </p>
             )}
 
-            {/* Member columns */}
-            {clubEntries.length > 0 && (
-              <div className="grid grid-cols-2 divide-x divide-white/5">
-                {/* On track */}
-                <div>
-                  <div className="px-5 py-2.5 border-b border-white/5 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    <span className="text-xs font-medium text-zinc-400">On Track</span>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {onTrack.map(e => (
-                      <div key={e.member_id} className="px-5 py-2.5 flex items-center justify-between gap-3">
-                        <span className="text-xs text-zinc-200 truncate">{e.trainer_name}</span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-zinc-600">{formatFans(Number(e.cumulative_fans))}</span>
-                          <span className="text-xs font-medium text-emerald-400">
-                            +{formatFans(Number(e.deficit_surplus))}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    {onTrack.length === 0 && (
-                      <p className="px-5 py-4 text-xs text-zinc-700">None</p>
-                    )}
-                  </div>
-                </div>
+            {clubEntries.length === 0 && selectedDate && (
+              <p className="border-t border-line px-5 py-8 text-center text-[13px] text-fg-subtle">
+                No data for this date. Sync to pull the latest from uma.moe.
+              </p>
+            )}
 
-                {/* Behind */}
-                <div>
-                  <div className="px-5 py-2.5 border-b border-white/5 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    <span className="text-xs font-medium text-zinc-400">Behind</span>
-                  </div>
-                  <div className="divide-y divide-white/5">
-                    {behind.map(e => (
-                      <div key={e.member_id} className="px-5 py-2.5 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="text-xs text-zinc-200 truncate">{e.trainer_name}</span>
-                          {e.bomb_active && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
-                              Number(e.days_remaining) <= 2 ? 'bg-red-500/15 text-red-400'
-                              : Number(e.days_remaining) <= 4 ? 'bg-orange-500/15 text-orange-400'
-                              : 'bg-amber-500/15 text-amber-400'
-                            }`}>
-                              💣 {e.days_remaining}d
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[10px] text-zinc-600">{formatFans(Number(e.cumulative_fans))}</span>
-                          <span className="text-xs font-medium text-amber-400">
-                            {formatFans(Number(e.deficit_surplus))}
-                          </span>
-                          {Number(e.days_behind) > 0 && (
-                            <span className="text-[10px] text-zinc-600">{e.days_behind}d</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {behind.length === 0 && (
-                      <p className="px-5 py-4 text-xs text-zinc-700">None</p>
-                    )}
-                  </div>
-                </div>
+            {clubEntries.length > 0 && (
+              <div className="grid grid-cols-1 border-t border-line md:grid-cols-2 md:divide-x md:divide-line">
+                <ReportColumn title="On track" tone="good" entries={onTrack} />
+                <ReportColumn title="Behind" tone="warn" entries={behind} className="border-t border-line md:border-t-0" />
               </div>
             )}
-          </div>
+          </section>
         )
       })}
+    </div>
+  )
+}
+
+function ReportColumn({
+  title,
+  tone,
+  entries,
+  className = '',
+}: {
+  title: string
+  tone: 'good' | 'warn'
+  entries: Entry[]
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <p className="flex items-center justify-between px-5 pt-3 pb-2 text-xs font-medium text-fg-subtle">
+        <span className={tone === 'good' ? 'text-good' : 'text-warn'}>{title}</span>
+        <span className="num">{entries.length}</span>
+      </p>
+      <ul>
+        {entries.map(e => {
+          const surplus = Number(e.deficit_surplus)
+          const bombDays = Number(e.days_remaining)
+          return (
+            <li key={e.member_id}>
+              <Link
+                href={`/dashboard/members/${e.member_id}`}
+                className="flex items-center gap-3 px-5 py-2 transition-colors hover:bg-surface-2/60"
+              >
+                <Avatar name={e.trainer_name} size={24} />
+                <span className="min-w-0 flex-1 truncate text-[13px] text-fg-soft">{e.trainer_name}</span>
+                {e.bomb_active && (
+                  <Chip tone={bombDays <= 2 ? 'bad' : 'warn'}>💣 {e.days_remaining}d</Chip>
+                )}
+                {!e.bomb_active && Number(e.days_behind) > 0 && (
+                  <span className="num text-xs text-fg-subtle">{e.days_behind}d</span>
+                )}
+                <span className="num hidden w-12 text-right text-xs text-fg-subtle sm:block">{formatFans(Number(e.cumulative_fans))}</span>
+                <span className={`num w-14 text-right text-[13px] font-medium ${surplus >= 0 ? 'text-good' : 'text-warn'}`}>
+                  {formatDelta(surplus)}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+        {entries.length === 0 && <li className="px-5 pb-4 text-[13px] text-fg-subtle">Nobody</li>}
+      </ul>
+      <div className="h-2" />
     </div>
   )
 }

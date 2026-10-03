@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Switch } from '@/components/dash/Modal'
 
 type Key = 'notify_on_bombs' | 'notify_on_deficit'
 
@@ -42,35 +43,25 @@ export default function NotificationToggles({
   }
 
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-        <p className="text-sm font-medium text-white">Discord DMs</p>
-        {error && <span className="text-[10px] text-red-400">{error}</span>}
+    <section className="panel overflow-hidden">
+      <div className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
+        <div>
+          <h2 className="text-[15px] font-semibold text-fg">Discord DMs</h2>
+          <p className="mt-0.5 text-[13px] text-fg-subtle">Same settings as /notification_settings</p>
+        </div>
+        {error && <span className="text-xs text-bad" role="alert">{error}</span>}
       </div>
-      <div className="divide-y divide-white/5">
+      <ul className="divide-y divide-line border-t border-line">
         {OPTIONS.map(({ key, label, desc }) => (
-          <label key={key} className="flex items-center justify-between gap-4 px-5 py-3.5 cursor-pointer hover:bg-white/[0.02]">
+          <li key={key} className="flex items-center justify-between gap-4 px-5 py-3.5">
             <div>
-              <p className="text-xs font-medium text-zinc-300">{label}</p>
-              <p className="text-[11px] text-zinc-600">{desc}</p>
+              <p className="text-[13px] font-medium text-fg-soft">{label}</p>
+              <p className="text-xs text-fg-subtle">{desc}</p>
             </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={values[key]}
-              disabled={saving === key}
-              onClick={() => toggle(key)}
-              className={`relative shrink-0 w-9 h-5 rounded-full transition-colors disabled:opacity-60 ${
-                values[key] ? 'bg-violet-600' : 'bg-white/10'
-              }`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                values[key] ? 'translate-x-4' : ''
-              }`} />
-            </button>
-          </label>
+            <Switch checked={values[key]} onChange={() => toggle(key)} disabled={saving === key} label={label} />
+          </li>
         ))}
-      </div>
-    </div>
+      </ul>
+    </section>
   )
 }

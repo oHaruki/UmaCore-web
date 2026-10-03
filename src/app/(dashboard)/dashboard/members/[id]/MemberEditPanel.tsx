@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Check, Loader2, AlertTriangle } from 'lucide-react'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -43,72 +44,72 @@ export default function MemberEditPanel({
   }
 
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/5">
-        <p className="text-xs font-medium text-zinc-400">Member details</p>
+    <section className="panel overflow-hidden">
+      <div className="px-5 pt-4 pb-3">
+        <h2 className="text-[15px] font-semibold text-fg">Member details</h2>
+        <p className="mt-0.5 text-[13px] text-fg-subtle">Saves when you leave a field.</p>
       </div>
-      <div className="px-5 py-4 grid grid-cols-2 gap-4">
-
-        {/* Trainer name */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-zinc-500">Trainer name</label>
-            <StatusDot status={nameStatus} />
+      <div className="space-y-4 px-5 pb-5">
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="me-name" className="text-[13px] font-medium text-fg-soft">Trainer name</label>
+            <SaveState status={nameStatus} />
           </div>
           <input
+            id="me-name"
             value={trainerName}
             onChange={e => setTrainerName(e.target.value)}
             onBlur={() => {
               if (trainerName !== initialTrainerName) save({ trainer_name: trainerName }, setNameStatus)
             }}
-            className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
+            className="field"
           />
         </div>
 
-        {/* Join date */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs text-zinc-500">
-              Join date
-              {joinStatus === 'saving' && <span className="ml-2 text-zinc-600">recalculating…</span>}
-            </label>
-            <StatusDot status={joinStatus} />
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label htmlFor="me-join" className="text-[13px] font-medium text-fg-soft">Join date</label>
+            <SaveState status={joinStatus} savingLabel="Recalculating" />
           </div>
           <input
+            id="me-join"
             type="date"
             value={joinDate}
             onChange={e => setJoinDate(e.target.value)}
             onBlur={() => {
               if (joinDate !== initialJoinDate.slice(0, 10)) save({ join_date: joinDate }, setJoinStatus)
             }}
-            className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors [color-scheme:dark]"
+            className="field num"
           />
-          <p className="text-[10px] text-zinc-700 mt-1">Changing this recalculates quota history</p>
+          <p className="text-xs text-fg-subtle">Changing this recalculates quota history.</p>
         </div>
 
-        {/* Read-only meta */}
-        <div>
-          <p className="text-xs text-zinc-500 mb-1.5">Last seen</p>
-          <p className="text-sm text-zinc-400">
-            {lastSeen ? new Date(lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-          </p>
-        </div>
-
-        <div>
-          <p className="text-xs text-zinc-500 mb-1.5">Deactivation</p>
-          <p className={`text-sm ${manuallyDeactivated ? 'text-amber-400' : 'text-zinc-600'}`}>
-            {manuallyDeactivated ? 'Manually deactivated' : '—'}
-          </p>
-        </div>
-
+        <dl className="grid grid-cols-2 gap-4 border-t border-line pt-4">
+          <div>
+            <dt className="text-xs text-fg-subtle">Last seen</dt>
+            <dd className="num mt-0.5 text-[13px] text-fg-soft">
+              {lastSeen ? new Date(lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '–'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs text-fg-subtle">Deactivation</dt>
+            <dd className={`mt-0.5 text-[13px] ${manuallyDeactivated ? 'text-warn' : 'text-fg-soft'}`}>
+              {manuallyDeactivated ? 'Manually deactivated' : '–'}
+            </dd>
+          </div>
+        </dl>
       </div>
-    </div>
+    </section>
   )
 }
 
-function StatusDot({ status }: { status: SaveStatus }) {
-  if (status === 'idle')   return null
-  if (status === 'saving') return <span className="text-[10px] text-zinc-600">saving…</span>
-  if (status === 'saved')  return <span className="text-[10px] text-emerald-500">saved</span>
-  return <span className="text-[10px] text-red-400">error</span>
+function SaveState({ status, savingLabel = 'Saving' }: { status: SaveStatus; savingLabel?: string }) {
+  if (status === 'idle') return null
+  if (status === 'saving') {
+    return <span className="inline-flex items-center gap-1 text-xs text-fg-subtle"><Loader2 size={12} className="animate-spin" />{savingLabel}</span>
+  }
+  if (status === 'saved') {
+    return <span className="inline-flex items-center gap-1 text-xs text-good"><Check size={12} strokeWidth={2.25} />Saved</span>
+  }
+  return <span className="inline-flex items-center gap-1 text-xs text-bad"><AlertTriangle size={12} strokeWidth={2} />Not saved</span>
 }

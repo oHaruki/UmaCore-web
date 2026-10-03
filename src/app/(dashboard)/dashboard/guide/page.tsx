@@ -1,15 +1,13 @@
 import { Clock, UserPlus, Bomb, RefreshCw, LogOut, TrendingUp } from 'lucide-react'
 import type { Metadata } from 'next'
+import { PageHeader } from '@/components/dash/ui'
 
 export const metadata: Metadata = { title: 'Guide — UmaCore' }
 
 export default function GuidePage() {
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-lg font-semibold text-white">Guide</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">How UmaCore tracks quota and manages members</p>
-      </div>
+    <div className="rise space-y-6 max-w-3xl">
+      <PageHeader title="Guide" description="How UmaCore tracks quota and manages members." />
 
       {/* ── Daily scrape ─────────────────────────────────────────── */}
       <Card icon={Clock} title="How the daily scrape works">
@@ -26,16 +24,16 @@ export default function GuidePage() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Note>The bot will <strong className="text-zinc-200">not run</strong> unless a report channel is set — this is the most common setup mistake.</Note>
-          <Note>Recommended scrape time: <strong className="text-zinc-200">18:00 Europe/Amsterdam</strong>. Uma.moe updates fan data around this time each day.</Note>
-          <Note>If scraping fails, an error embed is posted to the report channel. Admins can retry with <code className="text-zinc-300 font-mono">/force_check</code>.</Note>
-          <Note>Fan counts are <strong className="text-zinc-200">monthly totals</strong>, not lifetime. Uma.moe resets them each month and the bot tracks from 0.</Note>
+          <Note>The bot will <strong className="text-fg-soft">not run</strong> unless a report channel is set — this is the most common setup mistake.</Note>
+          <Note>Recommended scrape time: <strong className="text-fg-soft">18:00 Europe/Amsterdam</strong>. Uma.moe updates fan data around this time each day.</Note>
+          <Note>If scraping fails, an error embed is posted to the report channel. Admins can retry with <code className="text-fg-soft font-mono">/force_check</code>.</Note>
+          <Note>Fan counts are <strong className="text-fg-soft">monthly totals</strong>, not lifetime. Uma.moe resets them each month and the bot tracks from 0.</Note>
         </div>
       </Card>
 
       {/* ── Scenarios ─────────────────────────────────────────────── */}
       <div>
-        <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest mb-3">Scenarios</p>
+        <p className="text-[11px] font-semibold text-fg-subtle uppercase tracking-widest mb-3">Scenarios</p>
         <div className="space-y-4">
 
           {/* New member joins mid-month */}
@@ -45,7 +43,7 @@ export default function GuidePage() {
               <Li>The bot auto-detects the member&apos;s join date from Uma.moe — no manual setup needed.</Li>
               <Li>Quota is calculated <em>from the join date forward</em>, not from day 1 of the month.</Li>
               <Li>On their first day they&apos;ll appear as <Pill color="zinc">+0</Pill> — the pro-rata expectation equals what they have on day one.</Li>
-              <Li>The bomb cannot trigger until they are behind for <strong className="text-zinc-200">3 consecutive days</strong>, so there is a natural buffer when settling in.</Li>
+              <Li>The bomb cannot trigger until they are behind for <strong className="text-fg-soft">3 consecutive days</strong>, so there is a natural buffer when settling in.</Li>
             </ul>
           </Card>
 
@@ -53,9 +51,9 @@ export default function GuidePage() {
           <Card icon={Bomb} title="Member falls behind quota" badge="Bomb system" badgeColor="red">
             <BombLifecycle />
             <ul className="mt-4 space-y-2">
-              <Li>Being behind for one or two days does <em>not</em> trigger a bomb — three <strong className="text-zinc-200">consecutive</strong> days are required.</Li>
+              <Li>Being behind for one or two days does <em>not</em> trigger a bomb — three <strong className="text-fg-soft">consecutive</strong> days are required.</Li>
               <Li>The countdown ticks down by one day every daily scrape, regardless of activity.</Li>
-              <Li>Recovery deactivates the bomb <strong className="text-zinc-200">immediately</strong> — the moment daily surplus flips to ≥ 0, the bomb is cleared.</Li>
+              <Li>Recovery deactivates the bomb <strong className="text-fg-soft">immediately</strong> — the moment daily surplus flips to ≥ 0, the bomb is cleared.</Li>
               <Li>When the countdown hits 0 and the member is still behind, a kick alert is posted to the alert channel. Admins kick manually — the bot never auto-kicks.</Li>
             </ul>
           </Card>
@@ -76,7 +74,7 @@ export default function GuidePage() {
             <LeaveRejoinVisual />
             <ul className="mt-4 space-y-2">
               <Li>If a member is missing from the Uma.moe scrape they are automatically deactivated and hidden from reports.</Li>
-              <Li>If they reappear in a future scrape they are reactivated — their join date is reset to <strong className="text-zinc-200">today</strong>.</Li>
+              <Li>If they reappear in a future scrape they are reactivated — their join date is reset to <strong className="text-fg-soft">today</strong>.</Li>
               <Li>This means their quota history resets as if they are brand new. Any previous deficit does not carry over.</Li>
               <Li>Members manually deactivated by an admin <em>cannot</em> auto-rejoin — an admin must reactivate them explicitly.</Li>
             </ul>
@@ -86,7 +84,7 @@ export default function GuidePage() {
           <Card icon={TrendingUp} title="Quota changes mid-month" badge="Retroactive" badgeColor="zinc">
             <QuotaChangeVisual />
             <ul className="mt-4 space-y-2">
-              <Li>You can add a quota change at any point via <strong className="text-zinc-200">Settings → Quota changes</strong>.</Li>
+              <Li>You can add a quota change at any point via <strong className="text-fg-soft">Settings → Quota changes</strong>.</Li>
               <Li>Each day is calculated at the quota rate that was active <em>on that specific date</em> — days before the change are unaffected.</Li>
               <Li>Lowering quota mid-month can immediately bring members who were behind back to on-track status.</Li>
               <Li>Multiple quota changes in a single month are supported — each date segment uses its own rate.</Li>
@@ -110,19 +108,19 @@ function Card({
   children: React.ReactNode
 }) {
   const badgeStyles: Record<string, string> = {
-    blue:   'bg-blue-500/10 text-blue-400',
-    red:    'bg-red-500/10 text-red-400',
-    violet: 'bg-violet-500/10 text-violet-400',
-    amber:  'bg-amber-500/10 text-amber-400',
-    zinc:   'bg-white/5 text-zinc-400',
+    blue:   'bg-info/10 text-info',
+    red:    'bg-bad/10 text-bad',
+    violet: 'bg-brand/10 text-brand',
+    amber:  'bg-warn/10 text-warn',
+    zinc:   'bg-surface-3 text-fg-muted',
   }
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-white/5 flex items-center gap-2.5">
-        <Icon size={14} className="text-violet-400 shrink-0" />
-        <p className="text-sm font-medium text-white">{title}</p>
+    <div className="panel overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-line flex items-center gap-2.5">
+        <Icon size={14} className="text-brand shrink-0" />
+        <p className="text-sm font-medium text-fg">{title}</p>
         {badge && (
-          <span className={`ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ${badgeStyles[badgeColor]}`}>
+          <span className={`ml-auto text-[11px] font-medium px-2 py-0.5 rounded-full ${badgeStyles[badgeColor]}`}>
             {badge}
           </span>
         )}
@@ -134,7 +132,7 @@ function Card({
 
 function Note({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-xs text-zinc-500 bg-white/3 rounded px-3 py-2 leading-relaxed border border-white/5">
+    <p className="text-xs text-fg-muted bg-surface-2/70 rounded px-3 py-2 leading-relaxed border border-line">
       {children}
     </p>
   )
@@ -142,37 +140,37 @@ function Note({ children }: { children: React.ReactNode }) {
 
 function Li({ children }: { children: React.ReactNode }) {
   return (
-    <li className="flex items-start gap-2.5 text-xs text-zinc-400 leading-relaxed">
-      <span className="mt-1 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
+    <li className="flex items-start gap-2.5 text-xs text-fg-muted leading-relaxed">
+      <span className="mt-1 w-1 h-1 rounded-full bg-fg-subtle shrink-0" />
       <span>{children}</span>
     </li>
   )
 }
 
 function Pill({ children, color }: { children: React.ReactNode; color: 'zinc' | 'emerald' | 'red' }) {
-  const c = { zinc: 'bg-white/10 text-zinc-300', emerald: 'bg-emerald-500/15 text-emerald-400', red: 'bg-red-500/15 text-red-400' }
-  return <span className={`inline-block text-[11px] font-mono px-1.5 py-0.5 rounded ${c[color]}`}>{children}</span>
+  const c = { zinc: 'bg-surface-3 text-fg-soft', emerald: 'bg-good/15 text-good', red: 'bg-bad/15 text-bad' }
+  return <span className={`inline-block text-xs font-mono px-1.5 py-0.5 rounded ${c[color]}`}>{children}</span>
 }
 
 // ── Flow diagram (daily scrape) ────────────────────────────────
 function FlowBox({ color, label, sub, dim }: { color: string; label: string; sub: string; dim?: boolean }) {
   const colors: Record<string, string> = {
-    violet: 'border-violet-500/30 bg-violet-500/5 text-violet-300',
-    blue:   'border-blue-500/30 bg-blue-500/5 text-blue-300',
-    zinc:   'border-white/10 bg-white/3 text-zinc-300',
-    emerald:'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
-    amber:  'border-amber-500/30 bg-amber-500/5 text-amber-300',
+    violet: 'border-brand/30 bg-brand/5 text-brand',
+    blue:   'border-info/30 bg-info/5 text-info',
+    zinc:   'border-line-strong bg-surface-2/70 text-fg-soft',
+    emerald:'border-good/30 bg-good/5 text-good',
+    amber:  'border-warn/30 bg-warn/5 text-warn',
   }
   return (
     <div className={`border rounded px-3 py-2 text-center min-w-0 ${colors[color]} ${dim ? 'opacity-50' : ''}`}>
       <p className="text-xs font-medium leading-tight">{label}</p>
-      <p className="text-[10px] text-zinc-600 mt-0.5 leading-tight">{sub}</p>
+      <p className="text-[11px] text-fg-subtle mt-0.5 leading-tight">{sub}</p>
     </div>
   )
 }
 
 function FlowArrow() {
-  return <span className="text-zinc-700 text-xs shrink-0">→</span>
+  return <span className="text-fg-subtle text-xs shrink-0">→</span>
 }
 
 // ── New member visual ──────────────────────────────────────────
@@ -185,28 +183,28 @@ function NewMemberVisual() {
   return (
     <div className="relative select-none" style={{ height: '72px' }}>
       {/* Track */}
-      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-white/5 rounded-full overflow-hidden">
-        <div className="absolute inset-y-0 bg-violet-500/25 rounded-r-full" style={{ left: `${pct(joinDay)}%` }} />
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-1.5 bg-surface-3 rounded-full overflow-hidden">
+        <div className="absolute inset-y-0 bg-brand/25 rounded-r-full" style={{ left: `${pct(joinDay)}%` }} />
       </div>
 
       {/* Day labels */}
-      <span className="absolute bottom-0 left-0 text-[9px] text-zinc-700">Day 1</span>
-      <span className="absolute bottom-0 right-0 text-[9px] text-zinc-700">Day 31</span>
+      <span className="absolute bottom-0 left-0 text-[10px] text-fg-subtle">Day 1</span>
+      <span className="absolute bottom-0 right-0 text-[10px] text-fg-subtle">Day 31</span>
 
       {/* Join marker */}
       <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: `${pct(joinDay)}%` }}>
-        <div className="w-3 h-3 rounded-full bg-violet-500 ring-2 ring-[#0d0d14] relative z-10" />
+        <div className="w-3 h-3 rounded-full bg-brand-solid ring-2 ring-surface relative z-10" />
         <div className="absolute top-5 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
-          <p className="text-[10px] font-semibold text-violet-400">Day {joinDay}</p>
-          <p className="text-[9px] text-zinc-600">joined · quota starts</p>
+          <p className="text-[11px] font-semibold text-brand">Day {joinDay}</p>
+          <p className="text-[10px] text-fg-subtle">joined · quota starts</p>
         </div>
       </div>
 
       {/* Today marker */}
       <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2" style={{ left: `${pct(todayDay)}%` }}>
-        <div className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#0d0d14] relative z-10" />
+        <div className="w-2 h-2 rounded-full bg-good ring-2 ring-surface relative z-10" />
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
-          <p className="text-[9px] text-zinc-500">today · +0</p>
+          <p className="text-[10px] text-fg-muted">today · +0</p>
         </div>
       </div>
 
@@ -215,7 +213,7 @@ function NewMemberVisual() {
         className="absolute top-1/2 -translate-y-1/2 flex items-center justify-center"
         style={{ left: 0, width: `${pct(joinDay)}%` }}
       >
-        <span className="text-[9px] text-zinc-700 mt-6">not tracked</span>
+        <span className="text-[10px] text-fg-subtle mt-6">not tracked</span>
       </div>
     </div>
   )
@@ -228,26 +226,26 @@ function BombLifecycle() {
       {/* Track */}
       <div className="flex items-stretch gap-1.5">
         <Stage color="amber" top="Day 1" bottom="behind" />
-        <div className="flex items-center text-zinc-700 text-[10px]">→</div>
+        <div className="flex items-center text-fg-subtle text-[11px]">→</div>
         <Stage color="amber" top="Day 2" bottom="behind" />
-        <div className="flex items-center text-zinc-700 text-[10px]">→</div>
+        <div className="flex items-center text-fg-subtle text-[11px]">→</div>
         <Stage color="red" top="Day 3" bottom="💣 bomb!" highlight />
-        <div className="flex items-center text-zinc-700 text-[10px]">→</div>
-        <div className="flex-1 flex flex-col justify-center bg-red-500/8 border border-red-500/20 rounded px-3 py-2">
-          <p className="text-[11px] font-semibold text-red-400">Countdown</p>
-          <p className="text-[10px] text-zinc-600 mt-0.5">7 → 1 days (configurable)</p>
+        <div className="flex items-center text-fg-subtle text-[11px]">→</div>
+        <div className="flex-1 flex flex-col justify-center bg-bad/8 border border-bad/20 rounded px-3 py-2">
+          <p className="text-xs font-semibold text-bad">Countdown</p>
+          <p className="text-[11px] text-fg-subtle mt-0.5">7 → 1 days (configurable)</p>
         </div>
       </div>
 
       {/* Two outcomes */}
       <div className="flex gap-2 pt-0.5">
-        <div className="flex-1 bg-emerald-500/5 border border-emerald-500/20 rounded px-3 py-2.5">
-          <p className="text-xs font-semibold text-emerald-400">Recovers any day</p>
-          <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">Surplus flips ≥ 0 → bomb deactivated immediately, even mid-countdown</p>
+        <div className="flex-1 bg-good/5 border border-good/20 rounded px-3 py-2.5">
+          <p className="text-xs font-semibold text-good">Recovers any day</p>
+          <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">Surplus flips ≥ 0 → bomb deactivated immediately, even mid-countdown</p>
         </div>
-        <div className="flex-1 bg-red-500/5 border border-red-500/20 rounded px-3 py-2.5">
-          <p className="text-xs font-semibold text-red-400">Countdown expires</p>
-          <p className="text-[10px] text-zinc-500 mt-1 leading-relaxed">Still behind at 0 days → kick alert posted to alert channel for admin review</p>
+        <div className="flex-1 bg-bad/5 border border-bad/20 rounded px-3 py-2.5">
+          <p className="text-xs font-semibold text-bad">Countdown expires</p>
+          <p className="text-[11px] text-fg-muted mt-1 leading-relaxed">Still behind at 0 days → kick alert posted to alert channel for admin review</p>
         </div>
       </div>
     </div>
@@ -256,13 +254,13 @@ function BombLifecycle() {
 
 function Stage({ color, top, bottom, highlight }: { color: string; top: string; bottom: string; highlight?: boolean }) {
   const s: Record<string, string> = {
-    amber: 'border-amber-500/30 bg-amber-500/8 text-amber-300',
-    red:   'border-red-500/40 bg-red-500/10 text-red-300',
+    amber: 'border-warn/30 bg-warn/8 text-warn',
+    red:   'border-bad/40 bg-bad/10 text-bad',
   }
   return (
-    <div className={`flex flex-col items-center justify-center rounded border px-3 py-2 text-center w-20 shrink-0 ${s[color]} ${highlight ? 'ring-1 ring-red-500/30' : ''}`}>
-      <p className="text-[10px] font-semibold leading-tight">{top}</p>
-      <p className="text-[9px] text-zinc-500 mt-0.5 leading-tight">{bottom}</p>
+    <div className={`flex flex-col items-center justify-center rounded border px-3 py-2 text-center w-20 shrink-0 ${s[color]} ${highlight ? 'ring-1 ring-bad/30' : ''}`}>
+      <p className="text-[11px] font-semibold leading-tight">{top}</p>
+      <p className="text-[10px] text-fg-muted mt-0.5 leading-tight">{bottom}</p>
     </div>
   )
 }
@@ -271,31 +269,31 @@ function Stage({ color, top, bottom, highlight }: { color: string; top: string; 
 function MonthlyResetVisual() {
   return (
     <div className="flex gap-3 items-stretch">
-      <div className="flex-1 bg-white/3 border border-white/5 rounded px-4 py-3">
-        <p className="text-[10px] font-semibold text-zinc-500 mb-2.5">End of month</p>
+      <div className="flex-1 bg-surface-2/70 border border-line rounded px-4 py-3">
+        <p className="text-[11px] font-semibold text-fg-muted mb-2.5">End of month</p>
         <div className="space-y-1.5">
           {['Quota history', 'Active bombs', 'Quota changes'].map(l => (
             <div key={l} className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-zinc-400">{l}</span>
-              <span className="text-[10px] text-zinc-600 font-mono">stored</span>
+              <span className="text-[11px] text-fg-muted">{l}</span>
+              <span className="text-[11px] text-fg-subtle font-mono">stored</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="flex flex-col items-center justify-center gap-1 shrink-0">
-        <div className="w-px flex-1 bg-white/5" />
-        <div className="text-[10px] text-zinc-600 px-1 rotate-0">reset</div>
-        <div className="w-px flex-1 bg-white/5" />
+        <div className="w-px flex-1 bg-surface-3" />
+        <div className="text-[11px] text-fg-subtle px-1 rotate-0">reset</div>
+        <div className="w-px flex-1 bg-surface-3" />
       </div>
 
-      <div className="flex-1 bg-violet-500/5 border border-violet-500/20 rounded px-4 py-3">
-        <p className="text-[10px] font-semibold text-violet-400 mb-2.5">New month</p>
+      <div className="flex-1 bg-brand/5 border border-brand/20 rounded px-4 py-3">
+        <p className="text-[11px] font-semibold text-brand mb-2.5">New month</p>
         <div className="space-y-1.5">
           {['Quota history', 'Active bombs', 'Quota changes'].map(l => (
             <div key={l} className="flex items-center justify-between gap-2">
-              <span className="text-[10px] text-zinc-500 line-through">{l}</span>
-              <span className="text-[10px] text-violet-400 font-mono">cleared</span>
+              <span className="text-[11px] text-fg-muted line-through">{l}</span>
+              <span className="text-[11px] text-brand font-mono">cleared</span>
             </div>
           ))}
         </div>
@@ -321,22 +319,22 @@ function LeaveRejoinVisual() {
 
 function TimeBlock({ color, label, sub, dim }: { color: string; label: string; sub: string; dim?: boolean }) {
   const c: Record<string, string> = {
-    emerald: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
-    amber:   'border-amber-500/30 bg-amber-500/5 text-amber-300',
-    zinc:    'border-white/10 bg-white/3 text-zinc-400',
-    violet:  'border-violet-500/30 bg-violet-500/5 text-violet-300',
+    emerald: 'border-good/30 bg-good/5 text-good',
+    amber:   'border-warn/30 bg-warn/5 text-warn',
+    zinc:    'border-line-strong bg-surface-2/70 text-fg-muted',
+    violet:  'border-brand/30 bg-brand/5 text-brand',
   }
   return (
     <div className={`shrink-0 border rounded px-3 py-2 text-center ${c[color]} ${dim ? 'opacity-60' : ''}`}>
-      <p className="text-[10px] font-semibold leading-tight">{label}</p>
-      <p className="text-[9px] text-zinc-600 mt-0.5 leading-tight">{sub}</p>
+      <p className="text-[11px] font-semibold leading-tight">{label}</p>
+      <p className="text-[10px] text-fg-subtle mt-0.5 leading-tight">{sub}</p>
     </div>
   )
 }
 
 function Connector({ dashed }: { dashed?: boolean }) {
   return (
-    <div className={`w-6 h-px shrink-0 ${dashed ? 'border-t border-dashed border-white/15' : 'bg-white/10'}`} />
+    <div className={`w-6 h-px shrink-0 ${dashed ? 'border-t border-dashed border-line-strong' : 'bg-surface-3'}`} />
   )
 }
 
@@ -353,23 +351,23 @@ function QuotaChangeVisual() {
         {Array.from({ length: oldDays }).map((_, i) => (
           <div
             key={`old-${i}`}
-            className="flex-1 bg-violet-500/30 rounded-sm"
+            className="flex-1 bg-brand/30 rounded-sm"
             style={{ height: `${oldHeight}%` }}
           />
         ))}
         {/* Change marker */}
-        <div className="w-px bg-amber-400 self-stretch mx-1 shrink-0" />
+        <div className="w-px bg-warn self-stretch mx-1 shrink-0" />
         {Array.from({ length: newDays }).map((_, i) => (
           <div
             key={`new-${i}`}
-            className="flex-1 bg-violet-500/50 rounded-sm"
+            className="flex-1 bg-brand/50 rounded-sm"
             style={{ height: `${newHeight}%` }}
           />
         ))}
       </div>
-      <div className="mt-1.5 flex items-center justify-between text-[9px] text-zinc-600">
+      <div className="mt-1.5 flex items-center justify-between text-[10px] text-fg-subtle">
         <span>Days 1–{oldDays} &mdash; original rate</span>
-        <span className="text-amber-500/80">↑ quota raised day {oldDays + 1}</span>
+        <span className="text-warn/80">↑ quota raised day {oldDays + 1}</span>
         <span>Days {oldDays + 1}–31 &mdash; new rate</span>
       </div>
     </div>

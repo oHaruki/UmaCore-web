@@ -15,10 +15,10 @@ const LINE_OPTIONS = [
 type Level = 'ALL' | 'INFO' | 'WARNING' | 'ERROR'
 
 const LEVELS: { label: Level; color: string; active: string }[] = [
-  { label: 'ALL',     color: 'text-zinc-400',   active: 'bg-zinc-700 text-white' },
-  { label: 'INFO',    color: 'text-zinc-400',   active: 'bg-zinc-600 text-white' },
-  { label: 'WARNING', color: 'text-yellow-500', active: 'bg-yellow-600/80 text-white' },
-  { label: 'ERROR',   color: 'text-red-500',    active: 'bg-red-600/80 text-white' },
+  { label: 'ALL',     color: 'text-fg-muted',   active: 'bg-fg-subtle text-fg' },
+  { label: 'INFO',    color: 'text-fg-muted',   active: 'bg-fg-subtle text-fg' },
+  { label: 'WARNING', color: 'text-warn', active: 'bg-warn/80 text-fg' },
+  { label: 'ERROR',   color: 'text-bad',    active: 'bg-bad/80 text-fg' },
 ]
 
 function levelOf(line: string): Level {
@@ -28,10 +28,10 @@ function levelOf(line: string): Level {
 }
 
 function lineColor(line: string): string {
-  if (line.includes('ERROR'))   return 'text-red-400'
-  if (line.includes('WARNING')) return 'text-yellow-400'
-  if (line.includes('✅'))      return 'text-green-400'
-  return 'text-zinc-400'
+  if (line.includes('ERROR'))   return 'text-bad'
+  if (line.includes('WARNING')) return 'text-warn'
+  if (line.includes('✅'))      return 'text-good'
+  return 'text-fg-muted'
 }
 
 export default function LogsPanel() {
@@ -89,10 +89,10 @@ export default function LogsPanel() {
   return (
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider">
           Bot Logs
           {totalInFile != null && (
-            <span className="ml-2 text-zinc-600 font-normal normal-case">
+            <span className="ml-2 text-fg-subtle font-normal normal-case">
               ({allLines.length.toLocaleString()} shown / {totalInFile.toLocaleString()} total)
             </span>
           )}
@@ -100,13 +100,13 @@ export default function LogsPanel() {
 
         <div className="flex items-center gap-2 flex-wrap">
           {/* Level filters */}
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-surface-3 rounded-lg p-1">
             {LEVELS.map(({ label, color, active }) => (
               <button
                 key={label}
                 onClick={() => setLevel(label)}
                 className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
-                  level === label ? active : `${color} hover:bg-white/5`
+                  level === label ? active : `${color} hover:bg-surface-2`
                 }`}
               >
                 {label}
@@ -126,19 +126,19 @@ export default function LogsPanel() {
               setLineCount(v)
               fetchLogs(v)
             }}
-            className="bg-white/5 border border-white/10 text-zinc-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none"
+            className="bg-surface-3 border border-line-strong text-fg-soft text-xs rounded-lg px-2 py-1.5 focus:outline-none"
           >
             {LINE_OPTIONS.map(({ label, value }) => (
               <option key={value} value={value}>{label}</option>
             ))}
           </select>
 
-          <label className="flex items-center gap-2 text-xs text-zinc-500 cursor-pointer">
+          <label className="flex items-center gap-2 text-xs text-fg-muted cursor-pointer">
             <input
               type="checkbox"
               checked={autoRefresh}
               onChange={e => setAutoRefresh(e.target.checked)}
-              className="accent-violet-500"
+              className="accent-[var(--uc-brand)]"
             />
             Auto (10s)
           </label>
@@ -146,7 +146,7 @@ export default function LogsPanel() {
           <button
             onClick={() => fetchLogs()}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-3 hover:bg-surface-3 text-xs text-fg-muted hover:text-fg transition-colors disabled:opacity-50"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -154,11 +154,11 @@ export default function LogsPanel() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-white/5 bg-[#0d0d14] h-[600px] overflow-y-auto p-4 font-mono text-xs leading-5">
+      <div className="rounded-xl border border-line bg-surface h-[600px] overflow-y-auto p-4 font-mono text-xs leading-5">
         {error ? (
-          <p className="text-red-400">{error}</p>
+          <p className="text-bad">{error}</p>
         ) : filtered.length === 0 ? (
-          <p className="text-zinc-600">No {level !== 'ALL' ? level : ''} log lines.</p>
+          <p className="text-fg-subtle">No {level !== 'ALL' ? level : ''} log lines.</p>
         ) : (
           filtered.map((line, i) => (
             <div key={i} className={lineColor(line)}>{line}</div>

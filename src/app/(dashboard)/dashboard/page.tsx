@@ -2,10 +2,15 @@ import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import { ArrowRight, ArrowLeftRight, Bomb, TrendingDown, ExternalLink, Bot, SlidersHorizontal, UsersRound } from 'lucide-react'
 import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { isClubAdmin, effectiveAdminGuildIds } from '@/lib/guild-check'
 import { resolveActiveClub } from '@/lib/active-club'
 import { getBotGuilds } from '@/lib/bot-guilds'
+import { formatFans, nameHue, initials } from '@/lib/format'
+import { monthLabel } from '@/lib/month'
+import { PageHeader, Panel, Stat, StatStrip, SplitMeter, Chip } from '@/components/dash/ui'
 import ClubCardLink from './ClubCardLink'
 import ClubEditors from './settings/ClubEditors'
 import GuildManagers from './GuildManagers'
@@ -15,10 +20,14 @@ type ClubStat = {
   club_id: string; club_name: string; daily_quota: string
   quota_period: string; is_active: boolean
   active_count: string; on_track: string; behind: string
+  bombs: string; transfers: string
+  month: string | null
 }
 type RankPoint = {
   club_id: string; club_name: string; date: string; club_rank: string
 }
+
+const BOT_INVITE_URL = 'https://discord.com/oauth2/authorize?client_id=1467295225184784488&permissions=83968&integration_type=0&scope=bot+applications.commands'
 
 export default async function DashboardPage() {
   const session = await auth()
@@ -46,15 +55,27 @@ export default async function DashboardPage() {
     : (session?.adminGuilds ?? []).filter(g => effAdminGuildIds.includes(g.id))
 
   const [clubStats, rankHistory] = await Promise.all([
+    // Counts are for each club's current quota month (the month of its latest check),
+    // so last month's numbers never mix in.
     query<ClubStat>(`
+      WITH cm AS (
+        SELECT club_id, date_trunc('month', MAX(date))::date AS start
+        FROM quota_history WHERE club_id::text = ANY($1::text[]) GROUP BY club_id
+      )
       SELECT c.club_id, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota, c.quota_period, c.is_active,
+        to_char(MAX(cm.start), 'YYYY-MM') AS month,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_count,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus >= 0)::text AS on_track,
-        COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus < 0)::text AS behind
+        COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus < 0)::text AS behind,
+        (SELECT COUNT(*) FROM bombs b WHERE b.club_id = c.club_id AND b.is_active)::text AS bombs,
+        (SELECT COUNT(*) FROM transfer_requests tr WHERE tr.to_club_id = c.club_id AND tr.status = 'pending')::text AS transfers
       FROM clubs c
+      LEFT JOIN cm ON cm.club_id = c.club_id
       LEFT JOIN members m ON m.club_id = c.club_id
       LEFT JOIN LATERAL (
-        SELECT deficit_surplus FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
+        SELECT deficit_surplus FROM quota_history
+        WHERE member_id = m.member_id AND club_id = c.club_id AND date >= cm.start
+        ORDER BY date DESC LIMIT 1
       ) lat ON true
       WHERE c.club_id::text = ANY($1::text[])
       GROUP BY c.club_id ORDER BY c.club_name
@@ -64,208 +85,258 @@ export default async function DashboardPage() {
       SELECT crh.club_id::text, c.club_name, crh.date::text, crh.club_rank::text
       FROM club_rank_history crh
       JOIN clubs c ON c.club_id = crh.club_id
-      WHERE crh.date >= CURRENT_DATE - INTERVAL '30 days'
+      JOIN (
+        SELECT club_id, date_trunc('month', MAX(date))::date AS start
+        FROM quota_history WHERE club_id::text = ANY($1::text[]) GROUP BY club_id
+      ) cm ON cm.club_id = crh.club_id
+      WHERE crh.date >= cm.start
         AND c.club_id::text = ANY($1::text[])
       ORDER BY c.club_name, crh.date ASC
     `, [clubIds]).catch(() => []),
   ])
 
+  const firstName = session?.user?.name?.split(/\s+/)[0] ?? null
+
+  if (clubStats.length === 0) {
+    return <Welcome firstName={firstName} />
+  }
+
   const totals = clubStats.reduce(
     (a, c) => ({ members: a.members + Number(c.active_count), onTrack: a.onTrack + Number(c.on_track), behind: a.behind + Number(c.behind) }),
     { members: 0, onTrack: 0, behind: 0 }
   )
+  const onTrackPct = totals.members ? Math.round((totals.onTrack / totals.members) * 100) : 0
 
-  // Group rank history by club
   const rankByClub = rankHistory.reduce<Record<string, RankPoint[]>>((acc, r) => {
     (acc[r.club_id] ??= []).push(r)
     return acc
   }, {})
 
-  const BOT_INVITE_URL = 'https://discord.com/oauth2/authorize?client_id=1467295225184784488&permissions=83968&integration_type=0&scope=bot+applications.commands'
+  // Things a leader can act on, most urgent first.
+  const attention = [
+    ...clubStats.filter(c => Number(c.bombs) > 0).map(c => ({
+      key: `b-${c.club_id}`, club: c, href: '/dashboard/bombs', icon: Bomb, tone: 'bad' as const,
+      text: <><b className="font-semibold text-fg">{c.bombs} active bomb{Number(c.bombs) === 1 ? '' : 's'}</b> in {c.club_name}</>,
+    })),
+    ...clubStats.filter(c => Number(c.transfers) > 0).map(c => ({
+      key: `t-${c.club_id}`, club: c, href: '/dashboard/transfers', icon: ArrowLeftRight, tone: 'brand' as const,
+      text: <><b className="font-semibold text-fg">{c.transfers} waiting</b> to transfer into {c.club_name}</>,
+    })),
+    ...clubStats.filter(c => c.is_active && Number(c.behind) > 0).map(c => ({
+      key: `w-${c.club_id}`, club: c, href: '/dashboard/clubs', icon: TrendingDown, tone: 'warn' as const,
+      text: <><b className="font-semibold text-fg">{c.behind} behind quota</b> in {c.club_name}</>,
+    })),
+  ]
 
-  if (clubStats.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-white">Overview</h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </div>
-          <span className="text-xs text-zinc-600">{session?.user?.name}</span>
-        </div>
-
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-          <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-6">
-            <svg className="w-7 h-7 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/>
-            </svg>
-          </div>
-
-          <h2 className="text-xl font-semibold text-white mb-2">Welcome to UmaCore</h2>
-          <p className="text-sm text-zinc-500 max-w-sm mb-8">
-            You don&apos;t have any clubs connected yet. Invite the Discord bot to your server to get started.
-          </p>
-          <p className="text-xs text-zinc-600 max-w-sm -mt-5 mb-8">
-            Just a member? Link your trainer with <code className="text-zinc-400">/link_trainer</code> and open <Link href="/dashboard/me" className="text-violet-400 hover:text-violet-300">My trainer</Link>.
-          </p>
-
-          <a
-            href={BOT_INVITE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium transition-colors mb-10"
-          >
-            Invite Bot to Discord
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-
-          <div className="flex flex-col sm:flex-row gap-4 text-left max-w-lg w-full">
-            {[
-              { step: '1', title: 'Invite the bot', desc: 'Add the UmaCore bot to your Discord server using the button above.' },
-              { step: '2', title: 'Set up a club', desc: 'Use bot commands in Discord to create and configure your Uma Musume club.' },
-              { step: '3', title: 'Track your members', desc: 'Member data and quota stats will appear here automatically.' },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="flex-1 bg-[#0d0d14] border border-white/5 rounded-lg p-4">
-                <div className="w-6 h-6 rounded-full bg-indigo-500/15 text-indigo-400 text-xs font-semibold flex items-center justify-center mb-3">{step}</div>
-                <p className="text-sm font-medium text-white mb-1">{title}</p>
-                <p className="text-xs text-zinc-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const toneIcon = { bad: 'bg-bad/14 text-bad', brand: 'bg-brand/14 text-brand', warn: 'bg-warn/12 text-warn' }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">Clubs Overview</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Select a club to manage it</p>
-        </div>
-        <AddClubButton adminGuilds={addableGuilds} />
-      </div>
+    <div className="rise space-y-8">
+      <PageHeader
+        title={firstName ? `Welcome back, ${firstName}` : 'Overview'}
+        description={`${clubStats.length} club${clubStats.length === 1 ? '' : 's'} you manage. Pick one to open it.`}
+        actions={<AddClubButton adminGuilds={addableGuilds} />}
+      />
 
-      {/* Global stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'Active members', value: totals.members },
-          { label: 'On track',       value: totals.onTrack,  color: 'text-emerald-400' },
-          { label: 'Behind quota',   value: totals.behind,   color: totals.behind > 0 ? 'text-amber-400' : undefined },
-          { label: 'Active clubs',   value: clubStats.filter(c => c.is_active).length },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
-            <p className="text-xs text-zinc-500">{label}</p>
-            <p className={`mt-1.5 text-2xl font-semibold ${color ?? 'text-white'}`}>{value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip>
+        <Stat label="Members tracked" value={totals.members} />
+        <Stat
+          label="On track"
+          value={`${onTrackPct}%`}
+          tone={totals.members ? (onTrackPct >= 80 ? 'good' : 'warn') : 'neutral'}
+          hint={`${totals.onTrack} of ${totals.members}`}
+        />
+        <Stat label="Behind quota" value={totals.behind} tone={totals.behind > 0 ? 'warn' : 'neutral'} />
+        <Stat label="Active clubs" value={clubStats.filter(c => c.is_active).length} hint={`of ${clubStats.length}`} />
+      </StatStrip>
 
-      {/* Club cards — pick one to manage */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {attention.length > 0 && (
+        <Panel title="Needs attention" description="Jump straight to the page that sorts it." flush>
+          <ul className="divide-y divide-line border-t border-line">
+            {attention.slice(0, 6).map(a => (
+              <li key={a.key}>
+                <ClubCardLink clubId={a.club.club_id} href={a.href} className="rounded-none">
+                  <div className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-surface-2/60">
+                    <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${toneIcon[a.tone]}`}>
+                      <a.icon size={16} strokeWidth={1.75} />
+                    </span>
+                    <p className="min-w-0 flex-1 text-sm text-fg-muted">{a.text}</p>
+                    <ArrowRight size={16} strokeWidth={1.75} className="text-fg-subtle transition-transform group-hover:translate-x-0.5 group-hover:text-fg" />
+                  </div>
+                </ClubCardLink>
+              </li>
+            ))}
+          </ul>
+        </Panel>
+      )}
+
+      <section className="space-y-3">
+        <h2 className="text-[15px] font-semibold text-fg">Your clubs</h2>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {clubStats.map(club => {
-            const total   = Number(club.active_count)
+            const total = Number(club.active_count)
             const onTrack = Number(club.on_track)
-            const pct     = total > 0 ? Math.round((onTrack / total) * 100) : 0
-            const rankData = rankByClub[club.club_id] ?? []
-            const latestRank = rankData[rankData.length - 1]?.club_rank
-            const isActiveClub = club.club_id === active?.club_id
+            const behind = Number(club.behind)
+            const pct = total > 0 ? Math.round((onTrack / total) * 100) : null
+            const ranks = cleanRanks((rankByClub[club.club_id] ?? []).map(r => Number(r.club_rank)))
+            const latestRank = ranks[ranks.length - 1]
+            const rankDelta = ranks.length >= 2 ? ranks[0] - latestRank : 0
+            const isCurrent = club.club_id === active?.club_id
+            const hue = nameHue(club.club_name)
 
             return (
-              <ClubCardLink key={club.club_id} clubId={club.club_id}>
-              <div className={`bg-[#0d0d14] border rounded-lg p-5 transition-colors ${
-                isActiveClub ? 'border-violet-500/60 ring-1 ring-violet-500/30' : 'border-white/5 hover:border-white/15'
-              }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${club.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-                    <p className="text-sm font-medium text-white">{club.club_name}</p>
-                    <span className="text-xs text-zinc-600 capitalize">{club.quota_period}</span>
+              <ClubCardLink key={club.club_id} clubId={club.club_id} label={`Open ${club.club_name}`}>
+                <article
+                  className="panel group h-full p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong"
+                  style={{ backgroundImage: `radial-gradient(120% 90% at 0% 0%, oklch(0.32 0.06 ${hue} / 22%), transparent 55%)` }}
+                >
+                  <div className="flex items-start gap-3">
+                    <span
+                      className="grid size-10 shrink-0 place-items-center rounded-[30%] text-[13px] font-semibold"
+                      style={{ background: `oklch(0.32 0.05 ${hue})`, color: `oklch(0.92 0.05 ${hue})` }}
+                    >
+                      {initials(club.club_name)}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate text-base font-semibold text-fg">{club.club_name}</h3>
+                        {isCurrent && <Chip tone="brand">Selected</Chip>}
+                        {!club.is_active && <Chip>Inactive</Chip>}
+                      </div>
+                      <p className="num mt-0.5 text-[13px] text-fg-subtle">
+                        {formatFans(Number(club.daily_quota))} per {periodWord(club.quota_period)}
+                        {latestRank ? <> · rank #{latestRank.toLocaleString('en-US')}</> : null}
+                      </p>
+                    </div>
+                    <ArrowRight size={18} strokeWidth={1.75} className="mt-1 text-fg-subtle transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-fg" />
                   </div>
-                  <div className="flex items-center gap-4">
-                    {latestRank && (
-                      <span className="text-xs text-zinc-500">Rank #{latestRank}</span>
+
+                  <div className="mt-6 flex items-end justify-between gap-4">
+                    <div>
+                      <p className="num font-display text-[34px] font-semibold leading-none tracking-[-0.02em] text-fg">
+                        {pct === null ? '–' : `${pct}%`}
+                      </p>
+                      <p className="mt-1.5 text-[13px] text-fg-muted">
+                        {total
+                          ? <>on track in {club.month ? monthLabel(club.month, { month: 'long' }) : 'this month'} · <span className="text-good">{onTrack}</span> of {total}</>
+                          : 'No quota data yet'}
+                      </p>
+                    </div>
+                    {ranks.length >= 2 && (
+                      <div className="w-36 text-right">
+                        <Sparkline values={ranks} />
+                        <p className={`num mt-1 text-xs ${rankDelta > 0 ? 'text-good' : rankDelta < 0 ? 'text-warn' : 'text-fg-subtle'}`}>
+                          {rankDelta > 0 ? `Up ${rankDelta}` : rankDelta < 0 ? `Down ${-rankDelta}` : 'No change'} this month
+                        </p>
+                      </div>
                     )}
-                    <span className="text-xs text-zinc-500">{formatFans(Number(club.daily_quota))} / day</span>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Members</p><p className="text-sm font-medium text-white">{club.active_count}</p></div>
-                  <div><p className="text-[10px] text-zinc-600 mb-0.5">On track</p><p className="text-sm font-medium text-emerald-400">{club.on_track}</p></div>
-                  <div><p className="text-[10px] text-zinc-600 mb-0.5">Behind</p><p className="text-sm font-medium text-amber-400">{club.behind}</p></div>
-                </div>
+                  <SplitMeter good={onTrack} bad={behind} className="mt-4" />
 
-                {/* Quota health bar */}
-                <div className="mb-3">
-                  <div className="flex justify-between text-[10px] text-zinc-600 mb-1">
-                    <span>Quota health</span><span>{pct}%</span>
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    {behind > 0 && <Chip tone="warn">{behind} behind</Chip>}
+                    {Number(club.bombs) > 0 && <Chip tone="bad">💣 {club.bombs} active</Chip>}
+                    {Number(club.transfers) > 0 && <Chip tone="brand">{club.transfers} transfer{Number(club.transfers) === 1 ? '' : 's'} waiting</Chip>}
+                    {behind === 0 && Number(club.bombs) === 0 && Number(club.transfers) === 0 && total > 0 && (
+                      <Chip tone="good">Everyone on track</Chip>
+                    )}
                   </div>
-                  <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-
-                {/* Rank sparkline */}
-                {rankData.length >= 2 && (
-                  <RankSparkline data={rankData.map(r => Number(r.club_rank))} />
-                )}
-              </div>
+                </article>
               </ClubCardLink>
             )
           })}
-      </div>
-
-      {/* Editors for the selected club — admin only */}
-      {canManageEditors && active && (
-        <div>
-          <p className="text-xs text-zinc-500 mb-2">
-            Editor roles for <span className="text-zinc-300">{active.club_name}</span>
-          </p>
-          <ClubEditors clubId={active.club_id} />
         </div>
-      )}
+      </section>
 
-      {/* Server-wide manager roles — Discord admins only */}
-      {isGuildDiscordAdmin && active?.guild_id && (
-        <GuildManagers guildId={active.guild_id} />
+      {(canManageEditors || isGuildDiscordAdmin) && active && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-[15px] font-semibold text-fg">Access for {active.club_name}</h2>
+            <p className="mt-0.5 text-[13px] text-fg-subtle">Who besides Discord admins can manage this club.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            {canManageEditors && <ClubEditors clubId={active.club_id} />}
+            {isGuildDiscordAdmin && active.guild_id && <GuildManagers guildId={active.guild_id} />}
+          </div>
+        </section>
       )}
     </div>
   )
 }
 
-function RankSparkline({ data }: { data: number[] }) {
-  const W = 200, H = 28
-  const sorted = [...data].sort((a, b) => a - b)
-  const median = sorted[Math.floor(sorted.length / 2)] ?? 1
-  const filtered = data.filter(v => v <= median * 5)
-  const min = Math.min(...filtered), max = Math.max(...filtered)
-  const range = max - min || 1
-  // Rank: lower = better, so invert Y
-  const xOf = (i: number) => (i / Math.max(filtered.length - 1, 1)) * W
-  const yOf = (v: number) => H - ((max - v) / range) * H
-  const points = filtered.map((v, i) => `${xOf(i)},${yOf(v)}`).join(' ')
-
+function Welcome({ firstName }: { firstName: string | null }) {
+  const steps = [
+    { icon: Bot, title: 'Invite the bot', body: 'Add UmaCore to your Discord server with the button above.' },
+    { icon: SlidersHorizontal, title: 'Set up your club', body: 'Run /add_club in Discord, or add it here once the bot has joined.' },
+    { icon: UsersRound, title: 'Watch the numbers come in', body: 'Member quota progress shows up here after the first daily check.' },
+  ]
   return (
-    <div>
-      <p className="text-[10px] text-zinc-600 mb-1">Club rank (30d) — lower is better</p>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 28 }}>
-        <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="1.5" strokeLinejoin="round" />
-        <circle cx={xOf(filtered.length - 1)} cy={yOf(filtered[filtered.length - 1])} r="2.5" fill="#6366f1" />
-      </svg>
+    <div className="rise grid items-center gap-10 py-6 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="space-y-8">
+        <div className="space-y-3">
+          <h1 className="font-display text-[34px] md:text-[44px] font-semibold leading-[1.05] tracking-[-0.025em] text-fg text-balance">
+            {firstName ? `Hi ${firstName}, let's get your club tracked` : "Let's get your club tracked"}
+          </h1>
+          <p className="max-w-[52ch] text-[15px] leading-relaxed text-fg-muted">
+            You don&apos;t manage any clubs yet. Invite the bot to your server and your club&apos;s quota board fills itself in.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <a href={BOT_INVITE_URL} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+            Invite the bot
+            <ExternalLink size={14} strokeWidth={1.75} />
+          </a>
+          <Link href="/dashboard/me" className="btn btn-secondary">I&apos;m a member</Link>
+        </div>
+        <ol className="space-y-4">
+          {steps.map(s => (
+            <li key={s.title} className="flex gap-4">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-surface-2 text-brand">
+                <s.icon size={18} strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-fg">{s.title}</p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-fg-muted">{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <p className="text-[13px] text-fg-subtle">
+          Just here for your own progress? Link your trainer with <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-fg-soft">/link_trainer</code> in Discord, then open My trainer.
+        </p>
+      </div>
+      <div className="relative mx-auto hidden aspect-[400/460] w-full max-w-sm lg:block">
+        <Image src="/images/sakura_mascot_v2.webp" alt="Sakura Chiyono O, the UmaCore mascot" fill sizes="384px" className="object-contain" priority />
+      </div>
     </div>
   )
 }
 
-function formatFans(n: number) {
-  const abs = Math.abs(n), sign = n < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000)     return `${sign}${(abs / 1_000).toFixed(0)}K`
-  return String(n)
+/** Drop rank spikes (missed scrapes report huge ranks) so the line shows the real trend. */
+function cleanRanks(ranks: number[]) {
+  if (!ranks.length) return ranks
+  const sorted = [...ranks].sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)] ?? 1
+  return ranks.filter(v => v <= median * 5)
+}
+
+function Sparkline({ values }: { values: number[] }) {
+  const W = 144, H = 32
+  const min = Math.min(...values), max = Math.max(...values)
+  const range = max - min || 1
+  // Lower rank is better, so it's drawn higher.
+  const pts = values.map((v, i) => [(i / Math.max(values.length - 1, 1)) * (W - 4) + 2, 2 + ((v - min) / range) * (H - 4)])
+  const d = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)},${y.toFixed(1)}`).join('')
+  const [lx, ly] = pts[pts.length - 1]
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="ml-auto h-8 w-36" aria-hidden>
+      <path d={d} fill="none" stroke="var(--uc-brand)" strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={lx} cy={ly} r="2.75" fill="var(--uc-brand)" />
+    </svg>
+  )
+}
+
+function periodWord(p: string) {
+  return p === 'weekly' ? 'week' : p === 'biweekly' || p === 'bi-weekly' ? '2 weeks' : 'day'
 }

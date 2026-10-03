@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Geist_Mono } from "next/font/google";
+import { Space_Grotesk, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import CookieBanner from "@/components/CookieBanner";
@@ -8,6 +8,11 @@ const spaceGrotesk = Space_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+});
+
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
@@ -51,7 +56,8 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased dark`}
+      data-scroll-behavior="smooth"
+      className={`${spaceGrotesk.variable} ${geist.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>

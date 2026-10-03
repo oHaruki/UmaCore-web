@@ -1,6 +1,7 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { resolveActiveClub } from '@/lib/active-club'
+import { PageHeader, NoClub, EmptyState } from '@/components/dash/ui'
 
 type LogEntry = {
   id: string
@@ -14,23 +15,23 @@ type LogEntry = {
 }
 
 const ACTION_META: Record<string, { label: string; color: string }> = {
-  'club.create':       { label: 'Club created',        color: 'bg-sky-500/15 text-sky-300' },
-  'club.update':       { label: 'Club updated',         color: 'bg-sky-500/15 text-sky-300' },
-  'club.activate':     { label: 'Club reactivated',     color: 'bg-emerald-500/15 text-emerald-300' },
-  'club.delete':       { label: 'Club deleted',         color: 'bg-red-500/15 text-red-300' },
-  'club.recalculate':  { label: 'Recalculated',         color: 'bg-zinc-500/15 text-zinc-400' },
-  'club.reset_month':  { label: 'Month reset',          color: 'bg-red-500/15 text-red-300' },
-  'member.create':     { label: 'Member added',         color: 'bg-emerald-500/15 text-emerald-300' },
-  'member.deactivate': { label: 'Member deactivated',   color: 'bg-amber-500/15 text-amber-300' },
-  'member.reactivate': { label: 'Member reactivated',   color: 'bg-emerald-500/15 text-emerald-300' },
-  'member.update':     { label: 'Member updated',       color: 'bg-sky-500/15 text-sky-300' },
-  'quota_req.create':  { label: 'Quota req. added',     color: 'bg-violet-500/15 text-violet-300' },
-  'quota_req.delete':  { label: 'Quota req. removed',   color: 'bg-amber-500/15 text-amber-300' },
-  'club.editor.add':   { label: 'Editor role added',    color: 'bg-emerald-500/15 text-emerald-300' },
-  'club.editor.remove':{ label: 'Editor role removed',  color: 'bg-amber-500/15 text-amber-300' },
-  'guild.manager.add':    { label: 'Manager role added',   color: 'bg-emerald-500/15 text-emerald-300' },
-  'guild.manager.remove': { label: 'Manager role removed', color: 'bg-amber-500/15 text-amber-300' },
-  'sync.trigger':      { label: 'Sync triggered',       color: 'bg-zinc-500/15 text-zinc-400' },
+  'club.create':       { label: 'Club created',        color: 'bg-info/15 text-info' },
+  'club.update':       { label: 'Club updated',         color: 'bg-info/15 text-info' },
+  'club.activate':     { label: 'Club reactivated',     color: 'bg-good/15 text-good' },
+  'club.delete':       { label: 'Club deleted',         color: 'bg-bad/15 text-bad' },
+  'club.recalculate':  { label: 'Recalculated',         color: 'bg-surface-3 text-fg-muted' },
+  'club.reset_month':  { label: 'Month reset',          color: 'bg-bad/15 text-bad' },
+  'member.create':     { label: 'Member added',         color: 'bg-good/15 text-good' },
+  'member.deactivate': { label: 'Member deactivated',   color: 'bg-warn/15 text-warn' },
+  'member.reactivate': { label: 'Member reactivated',   color: 'bg-good/15 text-good' },
+  'member.update':     { label: 'Member updated',       color: 'bg-info/15 text-info' },
+  'quota_req.create':  { label: 'Quota req. added',     color: 'bg-brand/15 text-brand' },
+  'quota_req.delete':  { label: 'Quota req. removed',   color: 'bg-warn/15 text-warn' },
+  'club.editor.add':   { label: 'Editor role added',    color: 'bg-good/15 text-good' },
+  'club.editor.remove':{ label: 'Editor role removed',  color: 'bg-warn/15 text-warn' },
+  'guild.manager.add':    { label: 'Manager role added',   color: 'bg-good/15 text-good' },
+  'guild.manager.remove': { label: 'Manager role removed', color: 'bg-warn/15 text-warn' },
+  'sync.trigger':      { label: 'Sync triggered',       color: 'bg-surface-3 text-fg-muted' },
 }
 
 function formatDetails(action: string, details: Record<string, unknown> | null): string | null {
@@ -92,12 +93,7 @@ export default async function AuditLogPage() {
 
   if (!active) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-lg font-semibold text-white">Audit Log</h1>
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-5 py-10 text-center text-xs text-zinc-600">
-          No club selected. Add a club or pick one from the switcher above.
-        </div>
-      </div>
+      <NoClub title="Audit log" />
     )
   }
 
@@ -125,21 +121,18 @@ export default async function AuditLogPage() {
   `, [active.club_id, active.guild_id]).catch(() => [] as LogEntry[])
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-lg font-semibold text-white">Audit Log · {active.club_name}</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">Admin actions for this club — last 200 entries</p>
-      </div>
+    <div className="rise space-y-6">
+      <PageHeader title="Audit log" description={`Changes made to ${active.club_name} from the dashboard or bot commands. Shows the latest 200.`} />
 
       {logs.length === 0 ? (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-5 py-10 text-center">
-          <p className="text-xs text-zinc-600">No actions recorded yet.</p>
+        <div className="panel">
+          <EmptyState title="Nothing recorded yet" body="Edits to the club, its members and its quota show up here." />
         </div>
       ) : (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-          <div className="divide-y divide-white/5">
+        <div className="panel overflow-hidden">
+          <div className="divide-y divide-line">
             {logs.map(log => {
-              const meta = ACTION_META[log.action] ?? { label: log.action, color: 'bg-zinc-500/15 text-zinc-400' }
+              const meta = ACTION_META[log.action] ?? { label: log.action, color: 'bg-surface-3 text-fg-muted' }
               const detail = formatDetails(log.action, log.details)
               const viaDiscord = log.details?.via === 'discord'
               const ts = new Date(log.created_at)
@@ -147,29 +140,29 @@ export default async function AuditLogPage() {
                 <div key={log.id} className="px-5 py-3 flex items-center gap-4">
                   {/* Timestamp */}
                   <div className="shrink-0 w-32">
-                    <p className="text-[11px] text-zinc-400">{ts.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                    <p className="text-[10px] text-zinc-600">{ts.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
+                    <p className="text-xs text-fg-muted">{ts.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                    <p className="text-[11px] text-fg-subtle">{ts.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
 
                   {/* Actor — entries without a source tag predate command logging and came from the dashboard */}
                   <div className="shrink-0 w-28">
-                    <p className="text-xs text-zinc-300 truncate">{log.actor_name}</p>
-                    <p className="text-[10px] text-zinc-600">{viaDiscord ? 'via command' : 'via dashboard'}</p>
+                    <p className="text-xs text-fg-soft truncate">{log.actor_name}</p>
+                    <p className="text-[11px] text-fg-subtle">{viaDiscord ? 'via command' : 'via dashboard'}</p>
                   </div>
 
                   {/* Action badge */}
-                  <span className={`shrink-0 text-[10px] font-medium px-2 py-0.5 rounded ${meta.color}`}>
+                  <span className={`shrink-0 text-[11px] font-medium px-2 py-0.5 rounded ${meta.color}`}>
                     {meta.label}
                   </span>
 
                   {/* Club */}
                   {log.club_name && (
-                    <span className="shrink-0 text-[10px] text-zinc-600">{log.club_name}</span>
+                    <span className="shrink-0 text-[11px] text-fg-subtle">{log.club_name}</span>
                   )}
 
                   {/* Detail */}
                   {detail && (
-                    <p className="text-xs text-zinc-500 truncate min-w-0">{detail}</p>
+                    <p className="text-xs text-fg-muted truncate min-w-0">{detail}</p>
                   )}
                 </div>
               )

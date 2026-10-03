@@ -209,14 +209,14 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
   const tooLong = template.length > state.maxLength
 
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/5 flex items-center justify-between">
-        <p className="text-xs font-medium text-zinc-400">Channel names</p>
+    <div className="panel overflow-hidden">
+      <div className="px-5 pt-4 pb-1 flex items-center justify-between">
+        <h2 className="text-[15px] font-semibold text-fg">Channel names</h2>
         {state.bindings.length > 0 && (
           <button
             onClick={refreshNow}
             disabled={busy}
-            className="text-[11px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-300 disabled:opacity-40 transition-colors"
+            className="text-xs px-2 py-1 rounded bg-surface-3 hover:bg-surface-3 text-fg-soft disabled:opacity-40 transition-colors"
           >
             Update now
           </button>
@@ -224,8 +224,8 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
       </div>
 
       <div className="px-5 py-4 space-y-4">
-        <p className="text-xs text-zinc-500 leading-relaxed">
-          Let a channel&apos;s <span className="text-zinc-300">name</span> show this club&apos;s
+        <p className="text-xs text-fg-muted leading-relaxed">
+          Let a channel&apos;s <span className="text-fg-soft">name</span> show this club&apos;s
           figures — the locked voice channel most servers keep at the top for exactly this, kept
           current without anyone editing it. The bot rewrites it after each live update
           (hourly) and again after the daily scrape. You can point several channels at the same
@@ -233,22 +233,22 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
         </p>
 
         {state.loading ? (
-          <p className="text-xs text-zinc-600">Loading…</p>
+          <p className="text-xs text-fg-subtle">Loading…</p>
         ) : state.error ? (
-          <p className="text-xs text-red-400">{state.error}</p>
+          <p className="text-xs text-bad">{state.error}</p>
         ) : (
           <>
             {/* Current bindings */}
             <div className="space-y-2">
               {state.bindings.length === 0 && (
-                <p className="text-xs text-zinc-600">No channels are tracking this club yet.</p>
+                <p className="text-xs text-fg-subtle">No channels are tracking this club yet.</p>
               )}
               {state.bindings.map(b => {
                 const ch = channelById(b.channel_id)
                 return (
                   <div
                     key={b.channel_id}
-                    className="flex items-center gap-3 rounded border border-white/5 bg-[#111118] px-3 py-2.5"
+                    className="flex items-center gap-3 rounded border border-line bg-surface-2 px-3 py-2.5"
                   >
                     <span className="text-sm shrink-0">{TYPE_ICON[ch?.type ?? 'voice'] ?? '🔊'}</span>
                     <div className="min-w-0 flex-1">
@@ -261,20 +261,20 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                             if (e.key === 'Escape') setEditing(null)
                           }}
                           autoFocus
-                          className="w-full bg-[#0d0d14] border border-violet-500/40 rounded px-2 py-1 text-sm text-white font-mono outline-none"
+                          className="w-full bg-surface border border-brand/40 rounded px-2 py-1 text-sm text-fg font-mono outline-none"
                         />
                       ) : (
                         <>
-                          <p className="text-sm text-zinc-200 truncate">
+                          <p className="text-sm text-fg-soft truncate">
                             {b.last_rendered ?? ch?.name ?? `Channel ${b.channel_id}`}
-                            {!b.enabled && <span className="ml-2 text-[10px] text-amber-400">paused</span>}
+                            {!b.enabled && <span className="ml-2 text-[11px] text-warn">paused</span>}
                           </p>
-                          <p className="text-[11px] text-zinc-600 font-mono truncate">{b.template}</p>
+                          <p className="text-xs text-fg-subtle font-mono truncate">{b.template}</p>
                         </>
                       )}
                       {ch && ch.can_rename === false && (
-                        <p className="text-[11px] text-amber-400 mt-0.5">
-                          UmaCore may be missing <span className="text-zinc-300">Manage
+                        <p className="text-xs text-warn mt-0.5">
+                          UmaCore may be missing <span className="text-fg-soft">Manage
                           Channels</span> here. If the name stops updating, that&apos;s the
                           thing to check.
                         </p>
@@ -285,13 +285,13 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                         <button
                           onClick={() => saveEdit(b.channel_id)}
                           disabled={busy || !editText.trim()}
-                          className="text-[11px] px-2 py-1 rounded bg-violet-600 hover:bg-violet-500 text-white disabled:opacity-40 shrink-0 transition-colors"
+                          className="text-xs px-2 py-1 rounded bg-brand-solid hover:bg-brand-solid-hover text-brand-ink disabled:opacity-40 shrink-0 transition-colors"
                         >
                           Save
                         </button>
                         <button
                           onClick={() => setEditing(null)}
-                          className="text-[11px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-400 shrink-0 transition-colors"
+                          className="text-xs px-2 py-1 rounded bg-surface-3 hover:bg-surface-3 text-fg-muted shrink-0 transition-colors"
                         >
                           Cancel
                         </button>
@@ -301,14 +301,14 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                         <button
                           onClick={() => { setEditing(b.channel_id); setEditText(b.template) }}
                           disabled={busy}
-                          className="text-[11px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-400 disabled:opacity-40 shrink-0 transition-colors"
+                          className="text-xs px-2 py-1 rounded bg-surface-3 hover:bg-surface-3 text-fg-muted disabled:opacity-40 shrink-0 transition-colors"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => post({ channel_id: b.channel_id, enabled: !b.enabled }, 'PATCH')}
                           disabled={busy}
-                          className="text-[11px] px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-zinc-400 disabled:opacity-40 shrink-0 transition-colors"
+                          className="text-xs px-2 py-1 rounded bg-surface-3 hover:bg-surface-3 text-fg-muted disabled:opacity-40 shrink-0 transition-colors"
                         >
                           {b.enabled ? 'Pause' : 'Resume'}
                         </button>
@@ -316,7 +316,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                           onClick={() => post({ channel_id: b.channel_id }, 'DELETE')}
                           disabled={busy}
                           title="Stop tracking (the channel keeps its current name)"
-                          className="w-6 h-6 rounded text-zinc-600 hover:text-white hover:bg-white/10 flex items-center justify-center disabled:opacity-40 shrink-0 transition-colors"
+                          className="w-6 h-6 rounded text-fg-subtle hover:text-fg hover:bg-surface-3 flex items-center justify-center disabled:opacity-40 shrink-0 transition-colors"
                         >
                           ×
                         </button>
@@ -328,13 +328,13 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
             </div>
 
             {/* Add one */}
-            <div className="border-t border-white/5 pt-4 space-y-3">
+            <div className="border-t border-line pt-4 space-y-3">
               {!state.botReachable && (
-                <div className="rounded border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
-                  <p className="text-xs text-amber-400">Bot offline</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                <div className="rounded border border-warn/20 bg-warn/5 px-3 py-2.5">
+                  <p className="text-xs text-warn">Bot offline</p>
+                  <p className="text-xs text-fg-muted mt-0.5">
                     Can&apos;t list this server&apos;s channels right now. You can still set one in
-                    Discord with <span className="font-mono text-zinc-400">/set_channel_name</span>.
+                    Discord with <span className="font-mono text-fg-muted">/set_channel_name</span>.
                   </p>
                 </div>
               )}
@@ -344,7 +344,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                   value={channelId}
                   onChange={e => setChannelId(e.target.value)}
                   disabled={busy || available.length === 0}
-                  className="flex-1 min-w-0 bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors disabled:opacity-50"
+                  className="flex-1 min-w-0 bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg outline-none focus:border-brand/60 transition-colors disabled:opacity-50"
                 >
                   <option value="">
                     {available.length === 0 ? 'No channels available' : 'Pick a channel…'}
@@ -360,35 +360,35 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
               </div>
 
               {picked && picked.can_rename === false && (
-                <p className="text-[11px] text-amber-400">
+                <p className="text-xs text-warn">
                   UmaCore may not be able to rename #{picked.name}. Save anyway — it renames
                   immediately and tells you what happened.
                 </p>
               )}
               {picked && picked.needs_connect && (
-                <p className="text-[11px] text-amber-400">
-                  This is a voice channel, so UmaCore also needs <span className="text-zinc-300">
+                <p className="text-xs text-warn">
+                  This is a voice channel, so UmaCore also needs <span className="text-fg-soft">
                   Connect</span> on it — Discord blocks renaming a voice channel you can&apos;t
                   join. Everyone else can stay locked out.
                 </p>
               )}
               {picked && picked.type === 'text' && (
-                <p className="text-[11px] text-amber-400">
+                <p className="text-xs text-warn">
                   Discord lowercases text-channel names and turns spaces into hyphens. A voice
                   channel keeps your template exactly as written.
                 </p>
               )}
 
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] text-zinc-600 mr-0.5">Start from</span>
+                <span className="text-xs text-fg-subtle mr-0.5">Start from</span>
                 {PRESETS.map(p => (
                   <button
                     key={p.label}
                     onClick={() => { setTemplate(p.template); templateRef.current?.focus() }}
-                    className={`text-[11px] px-2 py-1 rounded border transition-colors ${
+                    className={`text-xs px-2 py-1 rounded border transition-colors ${
                       template === p.template
-                        ? 'border-violet-500/40 bg-violet-500/10 text-violet-300'
-                        : 'border-white/5 bg-white/5 text-zinc-400 hover:text-zinc-200'
+                        ? 'border-brand/40 bg-brand/10 text-brand'
+                        : 'border-line bg-surface-3 text-fg-muted hover:text-fg-soft'
                     }`}
                   >
                     {p.label}
@@ -397,9 +397,9 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
               </div>
 
               <div>
-                <label className="block text-[11px] text-zinc-500 mb-1">
+                <label className="block text-xs text-fg-muted mb-1">
                   Name — write whatever you want. Tokens like{' '}
-                  <span className="font-mono text-zinc-400">{'{rank}'}</span> fill in the
+                  <span className="font-mono text-fg-muted">{'{rank}'}</span> fill in the
                   numbers; everything else appears exactly as typed.
                 </label>
                 <input
@@ -407,19 +407,19 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                   value={template}
                   onChange={e => setTemplate(e.target.value)}
                   placeholder="Rank #{rank}"
-                  className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white font-mono outline-none focus:border-white/20 transition-colors"
+                  className="w-full bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg font-mono outline-none focus:border-brand/60 transition-colors"
                 />
                 <div className="flex items-center justify-between mt-1.5 gap-3">
-                  <p className="text-[11px] text-zinc-600 truncate">
+                  <p className="text-xs text-fg-subtle truncate">
                     {badTokens.length > 0 ? (
-                      <span className="text-red-400">
+                      <span className="text-bad">
                         Unknown: {badTokens.map(t => `{${t}}`).join(', ')}
                       </span>
                     ) : preview ? (
-                      <>Looks like <span className="text-zinc-300 font-mono">{preview}</span></>
+                      <>Looks like <span className="text-fg-soft font-mono">{preview}</span></>
                     ) : null}
                   </p>
-                  <span className={`text-[11px] shrink-0 ${tooLong ? 'text-red-400' : 'text-zinc-700'}`}>
+                  <span className={`text-xs shrink-0 ${tooLong ? 'text-bad' : 'text-fg-subtle'}`}>
                     {template.length}/{state.maxLength}
                   </span>
                 </div>
@@ -429,57 +429,57 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                 <button
                   onClick={add}
                   disabled={busy || !channelId || !template.trim() || badTokens.length > 0 || tooLong}
-                  className="px-3 py-2 text-xs bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors"
+                  className="px-3 py-2 text-xs bg-brand-solid hover:bg-brand-solid-hover disabled:opacity-40 disabled:cursor-not-allowed text-brand-ink rounded transition-colors"
                 >
                   {busy ? 'Saving…' : 'Track this channel'}
                 </button>
                 <button
                   onClick={() => setShowTokens(v => !v)}
-                  className="px-3 py-2 text-xs bg-white/5 hover:bg-white/10 text-zinc-400 rounded transition-colors"
+                  className="px-3 py-2 text-xs bg-surface-3 hover:bg-surface-3 text-fg-muted rounded transition-colors"
                 >
                   {showTokens ? 'Hide tokens' : 'What can I put in it?'}
                 </button>
               </div>
 
-              {notice && <p className="text-[11px] text-zinc-400">{notice}</p>}
+              {notice && <p className="text-xs text-fg-muted">{notice}</p>}
 
               {showTokens && (
-                <div className="rounded border border-white/5 bg-[#111118] px-3 py-2.5 space-y-1">
+                <div className="rounded border border-line bg-surface-2 px-3 py-2.5 space-y-1">
                   {Object.entries(state.tokens).map(([token, help]) => (
-                    <div key={token} className="flex gap-2 text-[11px]">
+                    <div key={token} className="flex gap-2 text-xs">
                       <button
                         onClick={() => setTemplate(t => `${t}{${token}}`)}
-                        className="font-mono text-violet-300 hover:text-violet-200 shrink-0 w-32 text-left"
+                        className="font-mono text-brand hover:text-brand-strong shrink-0 w-32 text-left"
                         title="Add to the template"
                       >
                         {`{${token}}`}
                       </button>
-                      <span className="text-zinc-500">{help}</span>
+                      <span className="text-fg-muted">{help}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="border-t border-white/5 pt-3 space-y-2">
-              <div className="rounded border border-white/5 bg-[#111118] px-3 py-2.5">
-                <p className="text-[11px] text-zinc-300">
-                  Voice channels also need <span className="text-amber-400">Connect</span>.
+            <div className="border-t border-line pt-3 space-y-2">
+              <div className="rounded border border-line bg-surface-2 px-3 py-2.5">
+                <p className="text-xs text-fg-soft">
+                  Voice channels also need <span className="text-warn">Connect</span>.
                 </p>
-                <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">
+                <p className="text-xs text-fg-muted mt-1 leading-relaxed">
                   Discord won&apos;t let anyone rename a voice channel they can&apos;t join — even
                   with Manage Channel. A display VC is usually locked by denying Connect to
                   everyone, which locks UmaCore out too. Allow it for UmaCore specifically and
                   everyone else stays locked out:{' '}
-                  <span className="text-zinc-300">
+                  <span className="text-fg-soft">
                     Edit Channel → Permissions → add UmaCore → allow View Channel, Connect and
                     Manage Channel
                   </span>. Server-wide permissions don&apos;t reach a channel that denies
-                  <span className="text-zinc-400"> @everyone</span>, so UmaCore has to be named on
+                  <span className="text-fg-muted"> @everyone</span>, so UmaCore has to be named on
                   the channel itself.
                 </p>
               </div>
-              <p className="text-[11px] text-zinc-600 leading-relaxed">
+              <p className="text-xs text-fg-subtle leading-relaxed">
                 Discord throttles renames to twice per ten minutes, so a name changes at most once
                 every few minutes, and only when the figures moved. Removing a channel here leaves
                 it with whatever name it has.

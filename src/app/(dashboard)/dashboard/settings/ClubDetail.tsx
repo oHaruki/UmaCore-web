@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import { Switch } from '@/components/dash/Modal'
 import { useRouter } from 'next/navigation'
 import type { Club, QuotaReq } from './page'
 import ChannelNames from './ChannelNames'
@@ -58,11 +59,11 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
     <div className="space-y-4">
 
       {/* Header */}
-      <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-5 py-4 flex items-center justify-between">
+      <div className="panel px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-          <h2 className="text-base font-semibold text-white">{club.club_name}</h2>
-          {club.guild_id && <span className="text-[10px] text-zinc-600">Guild {club.guild_id}</span>}
+          <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-good' : 'bg-fg-subtle'}`} />
+          <h2 className="text-base font-semibold text-fg">{club.club_name}</h2>
+          {club.guild_id && <span className="text-[11px] text-fg-subtle">Guild {club.guild_id}</span>}
         </div>
         <Toggle
           on={isActive}
@@ -78,7 +79,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
 
       {/* Identity */}
       <Section title="Identity">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField
             label="Scrape URL"
             value={club.scrape_url ?? ''}
@@ -92,7 +93,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             onSave={v => { const val = v || null; setSetup(s => ({ ...s, circle_id: val })); save({ circle_id: val }, 'circle_id') }}
           />
         </div>
-        <div className="mt-4 pt-4 border-t border-white/5 grid grid-cols-2 gap-4">
+        <div className="mt-4 pt-4 border-t border-line grid grid-cols-1 gap-4 sm:grid-cols-2">
           <ReadField label="Guild ID (Discord server)" value={club.guild_id} mono />
           <ReadField label="Club ID (for support)" value={club.club_id} mono />
         </div>
@@ -100,7 +101,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
 
       {/* Quota */}
       <Section title="Quota">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             label="Period"
             value={club.quota_period}
@@ -139,8 +140,8 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
       <Section title="Reports">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-zinc-300">Image report</p>
-            <p className="text-xs text-zinc-600 mt-0.5">
+            <p className="text-sm text-fg-soft">Image report</p>
+            <p className="text-xs text-fg-subtle mt-0.5">
               Post a visual PNG chart instead of the default text embeds for daily quota reports
             </p>
           </div>
@@ -169,13 +170,13 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             }}
           />
           {liveBoardChannel && (
-            <p className="text-xs text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded px-3 py-2 leading-relaxed">
+            <p className="text-xs text-warn/80 bg-warn/5 border border-warn/20 rounded px-3 py-2 leading-relaxed">
               While the live board is on, this club&apos;s daily report moves to the competition
               day close (15:00 UTC) regardless of the scrape time set above. Turn the board off
               and it returns to your configured scrape time.
             </p>
           )}
-          <p className="text-xs text-zinc-600 leading-relaxed">
+          <p className="text-xs text-fg-subtle leading-relaxed">
             The board is display only — its numbers are not final while the day is still running.
             Your daily report is unchanged and remains the only thing driving quota tracking,
             bombs and DMs.
@@ -197,12 +198,12 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
               save({ transfer_channel_id: val }, 'transfer_channel_id')
             }}
           />
-          <p className="text-xs text-zinc-600 leading-relaxed">
-            Members queue up with <code className="text-zinc-500">/transfer_request</code>, which
+          <p className="text-xs text-fg-subtle leading-relaxed">
+            Members queue up with <code className="text-fg-muted">/transfer_request</code>, which
             takes their trainer name and ID from{' '}
-            <code className="text-zinc-500">/link_trainer</code> — so a linked trainer is required
+            <code className="text-fg-muted">/link_trainer</code> — so a linked trainer is required
             and there is no ID to mistype. Approve or decline them on the Transfers page or with{' '}
-            <code className="text-zinc-500">/transfer_queue</code> — announcements carry no buttons,
+            <code className="text-fg-muted">/transfer_queue</code> — announcements carry no buttons,
             so decisions stay in one place. Approving DMs the requester to check their in-game invites.
           </p>
         </div>
@@ -213,8 +214,8 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-zinc-300">Enable bombs</p>
-              <p className="text-xs text-zinc-600 mt-0.5">
+              <p className="text-sm text-fg-soft">Enable bombs</p>
+              <p className="text-xs text-fg-subtle mt-0.5">
                 Members who fall behind trigger a countdown to removal
               </p>
             </div>
@@ -281,8 +282,8 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-zinc-300">Public dashboard</p>
-              <p className="text-xs text-zinc-600 mt-0.5">
+              <p className="text-sm text-fg-soft">Public dashboard</p>
+              <p className="text-xs text-fg-subtle mt-0.5">
                 Share a read-only link showing member quota status — no login required
               </p>
             </div>
@@ -296,8 +297,8 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
           </div>
 
           {publicEnabled && (
-            <div className="flex items-center gap-2 bg-[#111118] border border-white/5 rounded px-3 py-2.5">
-              <span className="text-xs text-zinc-500 font-mono flex-1 min-w-0 truncate">
+            <div className="flex items-center gap-2 bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2.5">
+              <span className="text-xs text-fg-muted font-mono flex-1 min-w-0 truncate">
                 /club/{club.public_slug}
               </span>
               <button
@@ -306,7 +307,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
                   setCopied(true)
                   setTimeout(() => setCopied(false), 2000)
                 }}
-                className="text-[11px] text-zinc-500 hover:text-white transition-colors shrink-0 font-medium"
+                className="text-xs text-fg-muted hover:text-fg transition-colors shrink-0 font-medium"
               >
                 {copied ? 'Copied!' : 'Copy link'}
               </button>
@@ -408,29 +409,29 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
       <div className="relative select-none" style={{ height: '96px' }}>
 
         {/* Base line */}
-        <div className="absolute inset-x-0 top-1/2 h-px bg-white/10" />
+        <div className="absolute inset-x-0 top-1/2 h-px bg-surface-3" />
 
         {/* End caps */}
-        <div className="absolute top-1/2 left-0 w-px h-3 -translate-y-1/2 bg-white/20" />
-        <div className="absolute top-1/2 right-0 w-px h-3 -translate-y-1/2 bg-white/20" />
+        <div className="absolute top-1/2 left-0 w-px h-3 -translate-y-1/2 bg-surface-3" />
+        <div className="absolute top-1/2 right-0 w-px h-3 -translate-y-1/2 bg-surface-3" />
 
         {/* Today marker */}
         <div
           className="absolute top-1/2 -translate-y-1/2"
           style={{ left: `${dayPct(todayDay)}%` }}
         >
-          <div className="w-px h-5 bg-zinc-500 -translate-x-1/2" />
-          <span className="absolute top-6 left-1/2 -translate-x-1/2 text-[9px] text-zinc-600 whitespace-nowrap">today</span>
+          <div className="w-px h-5 bg-fg-subtle -translate-x-1/2" />
+          <span className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] text-fg-subtle whitespace-nowrap">today</span>
         </div>
 
         {/* Month day labels at ends */}
-        <div className="absolute bottom-0 left-0 text-[9px] text-zinc-700">1</div>
-        <div className="absolute bottom-0 right-0 text-[9px] text-zinc-700">{daysInMonth}</div>
+        <div className="absolute bottom-0 left-0 text-[10px] text-fg-subtle">1</div>
+        <div className="absolute bottom-0 right-0 text-[10px] text-fg-subtle">{daysInMonth}</div>
 
         {/* No changes message */}
         {thisMonth.length === 0 && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-xs text-zinc-700">No changes this month</span>
+            <span className="text-xs text-fg-subtle">No changes this month</span>
           </div>
         )}
 
@@ -447,24 +448,24 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
               style={{ left: `${pct}%` }}
             >
               {/* Dot */}
-              <div className="w-2.5 h-2.5 rounded-full bg-violet-500 ring-2 ring-[#0d0d14] relative z-10" />
+              <div className="w-2.5 h-2.5 rounded-full bg-brand-solid ring-2 ring-surface relative z-10" />
 
               {/* Label — alternates above / below */}
               <div
                 className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none"
                 style={above ? { bottom: '14px' } : { top: '14px' }}
               >
-                <p className="text-[10px] font-semibold text-white leading-tight">
+                <p className="text-[11px] font-semibold text-fg leading-tight">
                   {formatFans(Number(q.daily_quota))}
                 </p>
-                <p className="text-[9px] text-zinc-500 leading-tight">{q.set_by ?? `Apr ${day}`}</p>
+                <p className="text-[10px] text-fg-muted leading-tight">{q.set_by ?? `Apr ${day}`}</p>
               </div>
 
               {/* Delete button — appears on hover */}
               <button
                 onClick={() => handleDelete(q.id)}
                 disabled={deletingId !== null}
-                className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-red-500 text-white text-[8px] leading-none items-center justify-center hidden group-hover:flex z-20 disabled:opacity-0 transition-opacity"
+                className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-bad text-fg text-[10px] leading-none items-center justify-center hidden group-hover:flex z-20 disabled:opacity-0 transition-opacity"
                 title="Remove"
               >
                 ×
@@ -475,21 +476,21 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
       </div>
 
       {/* ── Add form ── */}
-      <div className="border-t border-white/5 pt-4 flex items-end gap-3">
+      <div className="border-t border-line pt-4 flex items-end gap-3">
         <div className="flex-1 min-w-0">
-          <label className="text-xs text-zinc-500 block mb-1.5">Effective date</label>
+          <label className="text-xs text-fg-muted block mb-1.5">Effective date</label>
           <input
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors [color-scheme:dark]"
+            className="w-full bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg outline-none focus:border-brand/60 transition-colors [color-scheme:dark]"
           />
         </div>
         <div className="flex-1 min-w-0">
-          <label className="text-xs text-zinc-500 block mb-1.5">
+          <label className="text-xs text-fg-muted block mb-1.5">
             Daily quota
             {!isNaN(parsedAmount) && parsedAmount > 0 && (
-              <span className="ml-2 text-zinc-600">{formatFans(parsedAmount)}</span>
+              <span className="ml-2 text-fg-subtle">{formatFans(parsedAmount)}</span>
             )}
           </label>
           <input
@@ -497,20 +498,20 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
             value={amount}
             onChange={e => setAmount(e.target.value)}
             placeholder="e.g. 500000"
-            className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors placeholder:text-zinc-700"
+            className="w-full bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg outline-none focus:border-brand/60 transition-colors placeholder:text-fg-subtle"
           />
         </div>
         <div className="shrink-0 flex items-center gap-2 pb-0.5">
           <button
             onClick={handleAdd}
             disabled={addStatus === 'saving' || !date || isNaN(parsedAmount) || parsedAmount <= 0}
-            className="px-3 py-2 text-xs bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded transition-colors"
+            className="px-3 py-2 text-xs bg-brand-solid hover:bg-brand-solid-hover disabled:opacity-40 disabled:cursor-not-allowed text-brand-ink rounded transition-colors"
           >
             {addStatus === 'saving' ? 'Adding…' : 'Add'}
           </button>
-          {addStatus === 'error' && <span className="text-[10px] text-red-400">error</span>}
-          {recalcStatus === 'recalculating' && <span className="text-[10px] text-zinc-500">recalculating…</span>}
-          {recalcStatus === 'done' && <span className="text-[10px] text-emerald-500">recalculated</span>}
+          {addStatus === 'error' && <span className="text-[11px] text-bad">error</span>}
+          {recalcStatus === 'recalculating' && <span className="text-[11px] text-fg-muted">recalculating…</span>}
+          {recalcStatus === 'done' && <span className="text-[11px] text-good">recalculated</span>}
         </div>
       </div>
     </Section>
@@ -520,14 +521,14 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
 // ── Flow diagram helpers ───────────────────────────────────────
 function FlowStep({ label, sub, muted }: { label: string; sub: string; muted?: boolean }) {
   return (
-    <div className={`flex flex-col items-center px-2 py-1 rounded bg-white/5 ${muted ? 'opacity-50' : ''}`}>
-      <span className="text-zinc-300 font-medium leading-tight">{label}</span>
-      <span className="text-zinc-600 leading-tight">{sub}</span>
+    <div className={`flex flex-col items-center px-2 py-1 rounded bg-surface-3 ${muted ? 'opacity-50' : ''}`}>
+      <span className="text-fg-soft font-medium leading-tight">{label}</span>
+      <span className="text-fg-subtle leading-tight">{sub}</span>
     </div>
   )
 }
 function FlowArrow() {
-  return <span className="text-zinc-700 shrink-0">→</span>
+  return <span className="text-fg-subtle shrink-0">→</span>
 }
 
 // ── Setup checklist ────────────────────────────────────────────
@@ -569,21 +570,21 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
   const hasCriticalGap = items.some(i => i.critical && !i.done)
 
   return (
-    <div className={`rounded-lg border ${hasCriticalGap ? 'bg-red-500/5 border-red-500/20' : 'bg-amber-500/5 border-amber-500/15'}`}>
+    <div className={`rounded-lg border ${hasCriticalGap ? 'bg-bad/5 border-bad/20' : 'bg-warn/5 border-warn/15'}`}>
 
       {/* Header */}
-      <div className="px-5 pt-4 pb-3 border-b border-white/5">
+      <div className="px-5 pt-4 pb-3 border-b border-line">
         <div className="flex items-center gap-2">
-          <p className={`text-xs font-medium ${hasCriticalGap ? 'text-red-400' : 'text-amber-400'}`}>
+          <p className={`text-xs font-medium ${hasCriticalGap ? 'text-bad' : 'text-warn'}`}>
             Setup incomplete
           </p>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${hasCriticalGap ? 'bg-red-500/15 text-red-400' : 'bg-amber-500/15 text-amber-400'}`}>
+          <span className={`text-[11px] px-1.5 py-0.5 rounded-full ${hasCriticalGap ? 'bg-bad/15 text-bad' : 'bg-warn/15 text-warn'}`}>
             {items.filter(i => !i.done).length} remaining
           </span>
         </div>
 
         {/* Daily flow */}
-        <div className="mt-3 flex items-center gap-1.5 text-[10px]">
+        <div className="mt-3 flex items-center gap-1.5 text-[11px]">
           <FlowStep label="Uma.moe" sub="fan data" />
           <FlowArrow />
           <FlowStep label="Quota check" sub="per member" />
@@ -594,14 +595,14 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
         </div>
 
         <div className="mt-3 space-y-1.5">
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <p className="text-xs text-fg-muted leading-relaxed">
             The bot runs once daily at your configured scrape time. It pulls each member&apos;s fan count from Uma.moe, checks it against their quota, and posts a report to Discord.
           </p>
-          <p className="text-xs text-zinc-400 leading-relaxed">
+          <p className="text-xs text-fg-muted leading-relaxed">
             Members who fall behind build up &ldquo;days behind.&rdquo; Once they hit the trigger threshold a bomb starts — they have a set number of days to recover before being flagged for removal.
           </p>
-          <p className="text-xs text-zinc-600 leading-relaxed">
-            To get a channel ID: enable Developer Mode in Discord (<span className="text-zinc-500">Settings → Advanced</span>), then right-click any channel → <span className="text-zinc-500">Copy Channel ID</span>.
+          <p className="text-xs text-fg-subtle leading-relaxed">
+            To get a channel ID: enable Developer Mode in Discord (<span className="text-fg-muted">Settings → Advanced</span>), then right-click any channel → <span className="text-fg-muted">Copy Channel ID</span>.
           </p>
         </div>
       </div>
@@ -610,20 +611,20 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
       <div className="px-5 py-3.5 space-y-3">
         {items.map(item => (
           <div key={item.label} className="flex items-start gap-3">
-            <span className={`mt-px text-xs w-3 shrink-0 leading-4 ${item.done ? 'text-emerald-500' : item.critical ? 'text-red-400' : 'text-zinc-600'}`}>
+            <span className={`mt-px text-xs w-3 shrink-0 leading-4 ${item.done ? 'text-good' : item.critical ? 'text-bad' : 'text-fg-subtle'}`}>
               {item.done ? '✓' : item.critical ? '!' : '·'}
             </span>
             <div className="min-w-0">
               <div className="flex items-baseline gap-2">
-                <span className={`text-xs font-medium ${item.done ? 'text-zinc-600 line-through decoration-zinc-700' : 'text-zinc-200'}`}>
+                <span className={`text-xs font-medium ${item.done ? 'text-fg-subtle line-through decoration-zinc-700' : 'text-fg-soft'}`}>
                   {item.label}
                 </span>
                 {!item.done && item.critical && (
-                  <span className="text-[10px] font-medium text-red-400">required</span>
+                  <span className="text-[11px] font-medium text-bad">required</span>
                 )}
               </div>
               {!item.done && (
-                <p className="text-[10px] text-zinc-500 mt-0.5">{item.detail}</p>
+                <p className="text-[11px] text-fg-muted mt-0.5">{item.detail}</p>
               )}
             </div>
           </div>
@@ -636,12 +637,10 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
 // ── Section ────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3 border-b border-white/5">
-        <p className="text-xs font-medium text-zinc-400">{title}</p>
-      </div>
-      <div className="px-5 py-4">{children}</div>
-    </div>
+    <section className="panel overflow-hidden">
+      <h2 className="px-5 pt-4 pb-3 text-[15px] font-semibold text-fg">{title}</h2>
+      <div className="px-5 pb-5">{children}</div>
+    </section>
   )
 }
 
@@ -649,9 +648,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function ReadField({ label, value, mono }: { label: string; value: string | null; mono?: boolean }) {
   return (
     <div>
-      <p className="text-xs text-zinc-500 mb-1.5">{label}</p>
-      <p className={`text-sm text-zinc-300 truncate ${mono ? 'font-mono text-xs' : ''}`}>
-        {value ?? <span className="text-zinc-600">—</span>}
+      <p className="text-xs text-fg-muted mb-1.5">{label}</p>
+      <p className={`text-sm text-fg-soft truncate ${mono ? 'font-mono text-xs' : ''}`}>
+        {value ?? <span className="text-fg-subtle">–</span>}
       </p>
     </div>
   )
@@ -665,15 +664,9 @@ function Toggle({ on, label, onChange, saving, savedStatus }: {
 }) {
   return (
     <div className="flex items-center gap-2.5">
-      <span className="text-xs text-zinc-500">{label}</span>
-      <button
-        onClick={() => onChange(!on)}
-        disabled={saving}
-        className={`relative w-9 h-5 rounded-full transition-colors duration-200 disabled:opacity-60 ${on ? 'bg-violet-600' : 'bg-white/10'}`}
-      >
-        <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${on ? 'left-4' : 'left-0.5'}`} />
-      </button>
       <SaveIndicator status={savedStatus} />
+      <span className="text-[13px] text-fg-muted">{label}</span>
+      <Switch checked={on} onChange={onChange} disabled={saving} label={label} />
     </div>
   )
 }
@@ -688,14 +681,14 @@ function TextField({ label, value, onSave, savedStatus }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs text-zinc-500">{label}</label>
+        <label className="text-[13px] font-medium text-fg-soft">{label}</label>
         <SaveIndicator status={savedStatus} />
       </div>
       <input
         value={local}
         onChange={e => setLocal(e.target.value)}
         onBlur={() => { if (local !== value) onSave(local) }}
-        className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
+        className="field"
       />
     </div>
   )
@@ -713,7 +706,7 @@ function NumberField({ label, value, onSave, hint, savedStatus }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs text-zinc-500">{label}</label>
+        <label className="text-[13px] font-medium text-fg-soft">{label}</label>
         <SaveIndicator status={savedStatus} />
       </div>
       <input
@@ -721,11 +714,11 @@ function NumberField({ label, value, onSave, hint, savedStatus }: {
         value={local}
         onChange={e => setLocal(e.target.value)}
         onBlur={() => { if (!isNaN(parsed) && parsed !== value) onSave(parsed) }}
-        className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
+        className="field"
       />
-      {hint && <p className="text-[10px] text-zinc-600 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-fg-subtle mt-1">{hint}</p>}
       {!isNaN(parsed) && parsed !== value && (
-        <p className="text-[10px] text-zinc-600 mt-1">{formatFans(parsed)}</p>
+        <p className="text-[11px] text-fg-subtle mt-1">{formatFans(parsed)}</p>
       )}
     </div>
   )
@@ -742,7 +735,7 @@ function TimeField({ label, value, onSave, savedStatus, hint }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs text-zinc-500">{label}</label>
+        <label className="text-[13px] font-medium text-fg-soft">{label}</label>
         <SaveIndicator status={savedStatus} />
       </div>
       <input
@@ -750,9 +743,9 @@ function TimeField({ label, value, onSave, savedStatus, hint }: {
         value={local}
         onChange={e => setLocal(e.target.value)}
         onBlur={() => { if (local !== initial) onSave(local + ':00') }}
-        className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
+        className="field"
       />
-      {hint && <p className="text-[10px] text-zinc-600 mt-1">{hint}</p>}
+      {hint && <p className="text-[11px] text-fg-subtle mt-1">{hint}</p>}
     </div>
   )
 }
@@ -767,13 +760,13 @@ function SelectField({ label, value, options, onChange, savedStatus }: {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <label className="text-xs text-zinc-500">{label}</label>
+        <label className="text-[13px] font-medium text-fg-soft">{label}</label>
         <SaveIndicator status={savedStatus} />
       </div>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-sm text-white outline-none focus:border-white/20 transition-colors"
+        className="field"
       >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -789,21 +782,22 @@ function ChannelField({ label, description, value, onSave, savedStatus }: {
 }) {
   const [local, setLocal] = useState(value ?? '')
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-sm text-zinc-300">{label}</p>
+          <p className="text-[13px] font-medium text-fg-soft">{label}</p>
           <SaveIndicator status={savedStatus} />
         </div>
-        <p className="text-xs text-zinc-600">{description}</p>
+        <p className="text-xs text-fg-subtle">{description}</p>
       </div>
-      <div className="w-52 shrink-0">
+      <div className="w-full shrink-0 sm:w-56">
         <input
           value={local}
           onChange={e => setLocal(e.target.value)}
           onBlur={() => { if (local !== (value ?? '')) onSave(local) }}
           placeholder="Channel ID"
-          className="w-full bg-[#111118] border border-white/5 rounded px-3 py-2 text-xs text-white font-mono outline-none focus:border-white/20 transition-colors placeholder:text-zinc-700"
+          aria-label={`${label} channel ID`}
+          className="field num font-mono text-xs"
         />
       </div>
     </div>
@@ -813,9 +807,9 @@ function ChannelField({ label, description, value, onSave, savedStatus }: {
 // ── Save indicator ─────────────────────────────────────────────
 function SaveIndicator({ status }: { status: SaveStatus }) {
   if (status === 'idle')   return null
-  if (status === 'saving') return <span className="text-[10px] text-zinc-600">saving…</span>
-  if (status === 'saved')  return <span className="text-[10px] text-emerald-500">saved</span>
-  if (status === 'error')  return <span className="text-[10px] text-red-400">error</span>
+  if (status === 'saving') return <span className="text-xs text-fg-subtle">Saving…</span>
+  if (status === 'saved')  return <span className="text-xs text-good">Saved</span>
+  if (status === 'error')  return <span className="text-xs text-bad">Not saved</span>
   return null
 }
 

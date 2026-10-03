@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
 import LogsPanel from './LogsPanel'
+import { PageHeader } from '@/components/dash/ui'
 
 const OWNER_ID = '139769063948681217'
 
@@ -44,13 +45,12 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-        <p className="text-zinc-500 text-sm mt-1">Owner-only.</p>
+        <PageHeader title="Admin" description="Owner only." />
       </div>
 
       {/* Stats grid */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Overview</h2>
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { label: 'Guilds',          value: s.guilds },
@@ -60,9 +60,9 @@ export default async function AdminPage() {
             { label: 'Active members',  value: s.active_members },
             { label: 'Image reports',   value: s.image_enabled },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-4">
-              <p className="text-xs text-zinc-500 mb-1">{label}</p>
-              <p className="text-2xl font-bold text-white">{Number(value).toLocaleString()}</p>
+            <div key={label} className="rounded-xl border border-line bg-surface-2/70 px-4 py-4">
+              <p className="text-xs text-fg-muted mb-1">{label}</p>
+              <p className="text-2xl font-bold text-fg">{Number(value).toLocaleString()}</p>
             </div>
           ))}
         </div>
@@ -70,24 +70,24 @@ export default async function AdminPage() {
 
       {/* Top guilds by member count */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
           Top 10 guilds by active members
         </h2>
-        <div className="rounded-xl border border-white/5 overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.03]">
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Guild ID</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Clubs</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Active members</th>
+              <tr className="border-b border-line bg-surface-2/70">
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Guild ID</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Clubs</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Active members</th>
               </tr>
             </thead>
             <tbody>
               {topGuilds.map((g, i) => (
-                <tr key={i} className="border-b border-white/5 last:border-0">
-                  <td className="px-4 py-3 text-zinc-400 font-mono text-xs">{g.guild_id}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{g.clubs}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{Number(g.members).toLocaleString()}</td>
+                <tr key={i} className="border-b border-line last:border-0">
+                  <td className="px-4 py-3 text-fg-muted font-mono text-xs">{g.guild_id}</td>
+                  <td className="px-4 py-3 text-right text-fg-soft">{g.clubs}</td>
+                  <td className="px-4 py-3 text-right text-fg-soft">{Number(g.members).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

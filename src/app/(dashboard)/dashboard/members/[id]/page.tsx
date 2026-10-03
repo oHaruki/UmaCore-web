@@ -2,10 +2,12 @@ import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { ownsClub } from '@/lib/guild-check'
 import { notFound, forbidden } from 'next/navigation'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 import MemberEditPanel from './MemberEditPanel'
-import QuotaChart, { QuotaChartLegend, formatFans } from '@/components/QuotaChart'
+import QuotaChart, { QuotaChartLegend } from '@/components/QuotaChart'
+import { formatDay, formatDelta, formatFans } from '@/lib/format'
+import { monthLabel } from '@/lib/month'
+import { PageHeader, Panel, Stat, StatStrip, Chip, Avatar, EmptyState } from '@/components/dash/ui'
+import { MemberToggle } from '../MemberActions'
 
 type Member = {
   member_id: string
@@ -84,193 +86,199 @@ export default async function MemberProfilePage({
 
   const activeBomb = bombs.find(b => b.is_active)
 
-  // Summary stats
-  const total      = history.length
-  const onTrack    = history.filter(h => Number(h.deficit_surplus) >= 0).length
-  const behind     = total - onTrack
-  const latest     = history[history.length - 1]
-  const avgSurplus = total > 0
-    ? Math.round(history.reduce((s, h) => s + Number(h.deficit_surplus), 0) / total)
+  // Quota runs per calendar month (fans restart on the 1st), so the stats and chart
+  // cover the month of this member's latest check.
+  const latest       = history[history.length - 1]
+  const month        = latest?.date.slice(0, 7) ?? null
+  const monthHistory = month ? history.filter(h => h.date.startsWith(month)) : []
+  const monthName    = month ? monthLabel(month) : null
+  const total        = monthHistory.length
+  const onTrack      = monthHistory.filter(h => Number(h.deficit_surplus) >= 0).length
+  const avgSurplus   = total > 0
+    ? Math.round(monthHistory.reduce((s, h) => s + Number(h.deficit_surplus), 0) / total)
     : 0
+  const latestSurplus = latest ? Number(latest.deficit_surplus) : null
 
-  // Catch-up calculation: how much per day to recover deficit by end of month.
+  // Catch-up: what per day recovers the deficit by the end of that month.
   // 'biweekly' is the canonical value the bot writes; 'bi-weekly' is tolerated so
   // clubs saved by an older dashboard build still render correctly before migration.
   const periodDays  = { daily: 1, weekly: 7, biweekly: 14, 'bi-weekly': 14 }[member.quota_period] ?? 1
   const perDayQuota = Number(member.daily_quota) / periodDays
   const currentDeficit = latest ? Math.max(0, -Number(latest.deficit_surplus)) : 0
-  const today = new Date()
-  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
-  const daysRemaining = Math.max(1, daysInMonth - today.getDate())
+  let daysRemaining = 1
+  if (latest) {
+    const [y, m, d] = latest.date.split('-').map(Number)
+    daysRemaining = Math.max(1, new Date(y, m, 0).getDate() - d)
+  }
   const catchUpPerDay = currentDeficit > 0
     ? Math.ceil(perDayQuota + currentDeficit / daysRemaining)
     : null
 
+  // Newest month first, each with its own heading row in the history table.
+  const byMonth = Object.entries(
+    history.reduce<Record<string, HistoryEntry[]>>((acc, h) => {
+      (acc[h.date.slice(0, 7)] ??= []).push(h)
+      return acc
+    }, {})
+  ).sort(([a], [b]) => b.localeCompare(a))
+
   return (
-    <div className="space-y-5">
-      {/* Back + header */}
-      <div>
-        <Link href="/dashboard/members" className="inline-flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors mb-4">
-          <ArrowLeft size={12} />
-          Back to members
-        </Link>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-semibold text-white">{member.trainer_name}</h1>
-            <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded font-medium ${
-              member.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-zinc-500'
-            }`}>
-              <span className={`w-1 h-1 rounded-full ${member.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-              {member.is_active ? 'Active' : 'Inactive'}
-            </span>
+    <div className="rise space-y-6">
+      <PageHeader
+        back={{ href: '/dashboard/members', label: 'Members' }}
+        title={
+          <span className="flex items-center gap-3.5">
+            <Avatar name={member.trainer_name} size={44} />
+            <span className="min-w-0 truncate">{member.trainer_name}</span>
+          </span>
+        }
+        meta={
+          <>
+            <Chip tone={member.is_active ? 'good' : 'neutral'}>{member.is_active ? 'Active' : 'Inactive'}</Chip>
             {activeBomb && (
-              <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded font-medium ${
-                activeBomb.days_remaining <= 1 ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'
-              }`}>
-                💣 {activeBomb.days_remaining}d left
-              </span>
+              <Chip tone={activeBomb.days_remaining <= 1 ? 'bad' : 'warn'}>💣 {activeBomb.days_remaining}d left</Chip>
             )}
-          </div>
-          <div className="text-right space-y-1">
-            <p className="text-xs text-zinc-500">Trainer ID: {member.trainer_id}</p>
-            <p className="text-xs text-zinc-600">{member.club_name}</p>
+            <Chip className="num">ID {member.trainer_id}</Chip>
             {userLink ? (
-              <p className="text-xs text-violet-400">
+              <Chip tone="info" title={
+                userLink.notify_on_bombs || userLink.notify_on_deficit
+                  ? `DMs on ${[userLink.notify_on_bombs && 'bombs', userLink.notify_on_deficit && 'deficit'].filter(Boolean).join(' and ')}`
+                  : 'DMs off'
+              }>
                 Discord linked
-                {userLink.notify_on_bombs || userLink.notify_on_deficit
-                  ? ` · notified on ${[userLink.notify_on_bombs && 'bombs', userLink.notify_on_deficit && 'deficit'].filter(Boolean).join(' & ')}`
-                  : ''}
-              </p>
+              </Chip>
             ) : (
-              <p className="text-xs text-zinc-700">No Discord link</p>
+              <Chip>No Discord link</Chip>
             )}
-          </div>
-        </div>
-      </div>
+          </>
+        }
+        actions={<MemberToggle memberId={member.member_id} isActive={member.is_active} name={member.trainer_name} />}
+      />
 
-      {/* Stat row */}
-      <div className="grid grid-cols-6 gap-3">
-        {[
-          { label: 'Days tracked',  value: String(total) },
-          { label: 'Days on track', value: String(onTrack), color: 'text-emerald-400' },
-          { label: 'Days behind',   value: String(behind),  color: behind > 0 ? 'text-amber-400' : undefined },
-          { label: 'Avg surplus',   value: (avgSurplus >= 0 ? '+' : '') + formatFans(avgSurplus), color: avgSurplus >= 0 ? 'text-emerald-400' : 'text-amber-400' },
-          { label: 'Latest fans',   value: latest ? formatFans(Number(latest.cumulative_fans)) : '—' },
-          {
-            label: catchUpPerDay ? 'Need / day to recover' : 'Daily target',
-            value: catchUpPerDay ? formatFans(catchUpPerDay) : formatFans(Math.ceil(perDayQuota)),
-            color: catchUpPerDay ? 'text-amber-400' : 'text-zinc-400',
-          },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
-            <p className="text-xs text-zinc-500">{label}</p>
-            <p className={`mt-1.5 text-xl font-semibold ${color ?? 'text-white'}`}>{value}</p>
-          </div>
-        ))}
-      </div>
+      <StatStrip>
+        <Stat
+          label="Surplus"
+          value={latestSurplus !== null ? formatDelta(latestSurplus) : '–'}
+          tone={latestSurplus === null ? 'neutral' : latestSurplus >= 0 ? 'good' : 'warn'}
+          hint={latest ? `as of ${formatDay(latest.date)}` : undefined}
+        />
+        <Stat
+          label={monthName ? `Fans in ${monthLabel(month!, { month: 'long' })}` : 'Fans this month'}
+          value={latest ? formatFans(Number(latest.cumulative_fans)) : '–'}
+        />
+        <Stat
+          label={catchUpPerDay ? 'Needed per day to recover' : 'Daily target'}
+          value={catchUpPerDay ? formatFans(catchUpPerDay) : formatFans(Math.ceil(perDayQuota))}
+          tone={catchUpPerDay ? 'warn' : 'neutral'}
+        />
+        <Stat
+          label="Checks on track"
+          value={total ? `${Math.round((onTrack / total) * 100)}%` : '–'}
+          hint={total ? `${onTrack} of ${total} this month` : undefined}
+          tone={total ? (onTrack === total ? 'good' : 'neutral') : 'neutral'}
+        />
+        <Stat label="Average surplus" value={formatDelta(avgSurplus)} tone={avgSurplus >= 0 ? 'good' : 'warn'} hint="this month" />
+      </StatStrip>
 
-      {/* Chart */}
-      {history.length >= 2 && (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-medium text-white">Fan progression</p>
-            <QuotaChartLegend />
-          </div>
-          <QuotaChart data={history.map(h => ({
+      {monthHistory.length >= 2 && (
+        <Panel
+          title="Fan progression"
+          description={monthName ?? undefined}
+          action={<QuotaChartLegend />}
+        >
+          <QuotaChart data={monthHistory.map(h => ({
             date: h.date,
             cumulative: Number(h.cumulative_fans),
             expected: Number(h.expected_fans),
           }))} />
-        </div>
+        </Panel>
       )}
 
-      {/* Bombs */}
-      {bombs.length > 0 && (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/5">
-            <p className="text-sm font-medium text-white">Bomb history</p>
-          </div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Activated</th>
-                <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Status</th>
-                <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Days remaining</th>
-                <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Resolved</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {bombs.map(b => (
-                <tr key={b.bomb_id} className="hover:bg-white/[0.02]">
-                  <td className="px-5 py-3 text-xs text-zinc-300">{new Date(b.activation_date).toLocaleDateString()}</td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded ${b.is_active ? 'bg-amber-500/10 text-amber-400' : 'bg-white/5 text-zinc-500'}`}>
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title="Quota history"
+          description={`${history.length} daily check${history.length === 1 ? '' : 's'} across ${byMonth.length} month${byMonth.length === 1 ? '' : 's'}`}
+          flush
+        >
+          {history.length ? (
+            <div className="max-h-[480px] overflow-auto border-t border-line">
+              <table className="table-ui">
+                <thead className="sticky top-0 z-[1]">
+                  <tr>
+                    <th>Date</th>
+                    <th className="text-right">Fans</th>
+                    <th className="hidden text-right sm:table-cell">Expected</th>
+                    <th className="text-right">Surplus</th>
+                    <th className="text-right">Days behind</th>
+                  </tr>
+                </thead>
+                {byMonth.map(([m, rows]) => (
+                <tbody key={m}>
+                  <tr className="bg-surface-2/70 hover:bg-surface-2/70">
+                    <td colSpan={5} className="py-2 text-xs font-medium text-fg-muted">
+                      {monthLabel(m)}
+                      <span className="num ml-2 font-normal text-fg-subtle">
+                        {rows.filter(r => Number(r.deficit_surplus) >= 0).length} of {rows.length} on track
+                      </span>
+                    </td>
+                  </tr>
+                  {[...rows].reverse().map(h => {
+                    const val = Number(h.deficit_surplus)
+                    return (
+                      <tr key={h.date}>
+                        <td className="num text-fg-muted">{formatDay(h.date, { weekday: 'short', month: 'short', day: 'numeric' })}</td>
+                        <td className="num text-right text-fg-soft">{formatFans(Number(h.cumulative_fans))}</td>
+                        <td className="num hidden text-right text-fg-subtle sm:table-cell">{formatFans(Number(h.expected_fans))}</td>
+                        <td className={`num text-right font-medium ${val >= 0 ? 'text-good' : 'text-warn'}`}>{formatDelta(val)}</td>
+                        <td className={`num text-right ${Number(h.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>
+                          {Number(h.days_behind) > 0 ? `${h.days_behind}d` : '–'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+                ))}
+              </table>
+            </div>
+          ) : (
+            <EmptyState title="No history yet" body="Rows appear after this member's first daily check." className="border-t border-line" />
+          )}
+        </Panel>
+
+        <div className="space-y-4">
+          <MemberEditPanel
+            memberId={member.member_id}
+            initialJoinDate={member.join_date ?? ''}
+            initialTrainerName={member.trainer_name}
+            lastSeen={member.last_seen}
+            manuallyDeactivated={member.manually_deactivated}
+          />
+
+          <Panel title="Bomb history" flush>
+            {bombs.length ? (
+              <ul className="divide-y divide-line border-t border-line">
+                {bombs.map(b => (
+                  <li key={b.bomb_id} className="flex items-center justify-between gap-3 px-5 py-3">
+                    <div>
+                      <p className="num text-[13px] text-fg-soft">
+                        {new Date(b.activation_date).toLocaleDateString()}
+                        {b.deactivation_date && <span className="text-fg-subtle"> to {new Date(b.deactivation_date).toLocaleDateString()}</span>}
+                      </p>
+                      <p className="text-xs text-fg-subtle">{b.is_active ? `${b.days_remaining} days remaining` : 'Defused'}</p>
+                    </div>
+                    <Chip tone={b.is_active ? (b.days_remaining <= 1 ? 'bad' : 'warn') : 'neutral'}>
                       {b.is_active ? 'Active' : 'Resolved'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 text-xs text-zinc-400">{b.days_remaining}d</td>
-                  <td className="px-5 py-3 text-xs text-zinc-600">
-                    {b.deactivation_date ? new Date(b.deactivation_date).toLocaleDateString() : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Full quota history */}
-      <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-          <p className="text-sm font-medium text-white">Quota history</p>
-          <span className="text-xs text-zinc-600">{history.length} entries</span>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-white/5">
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Date</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Cumulative fans</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Expected</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Surplus / Deficit</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Days behind</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {[...history].reverse().map((h, i) => {
-              const val = Number(h.deficit_surplus)
-              return (
-                <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                  <td className="px-5 py-3 text-xs text-zinc-400">{new Date(h.date).toLocaleDateString()}</td>
-                  <td className="px-5 py-3 text-xs text-zinc-300">{formatFans(Number(h.cumulative_fans))}</td>
-                  <td className="px-5 py-3 text-xs text-zinc-500">{formatFans(Number(h.expected_fans))}</td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs font-medium ${val >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {val >= 0 ? '+' : ''}{formatFans(val)}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span className={`text-xs ${Number(h.days_behind) > 0 ? 'text-amber-400' : 'text-zinc-600'}`}>
-                      {h.days_behind}d
-                    </span>
-                  </td>
-                </tr>
-              )
-            })}
-            {history.length === 0 && (
-              <tr><td colSpan={5} className="px-5 py-6 text-xs text-zinc-600 text-center">No history yet</td></tr>
+                    </Chip>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="border-t border-line px-5 py-4 text-[13px] text-fg-subtle">No bombs so far.</p>
             )}
-          </tbody>
-        </table>
+          </Panel>
+        </div>
       </div>
-
-      {/* Editable fields */}
-      <MemberEditPanel
-        memberId={member.member_id}
-        initialJoinDate={member.join_date ?? ''}
-        initialTrainerName={member.trainer_name}
-        lastSeen={member.last_seen}
-        manuallyDeactivated={member.manually_deactivated}
-      />
     </div>
   )
 }

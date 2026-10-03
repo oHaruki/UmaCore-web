@@ -2,7 +2,11 @@ import { query, queryOne } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import Link from 'next/link'
-import QuotaChart, { QuotaChartLegend, formatFans } from '@/components/QuotaChart'
+import { Flame, Link2 } from 'lucide-react'
+import QuotaChart, { QuotaChartLegend } from '@/components/QuotaChart'
+import { formatDelta, formatFans } from '@/lib/format'
+import { monthLabel } from '@/lib/month'
+import { PageHeader, Panel, Stat, StatStrip, Chip, Avatar, EmptyState } from '@/components/dash/ui'
 import NotificationToggles from './NotificationToggles'
 
 type Linked = {
@@ -43,12 +47,12 @@ type Transfer = {
   queue_pos: string | null
 }
 
-const statusStyle: Record<string, string> = {
-  pending:   'bg-violet-500/10 text-violet-300',
-  approved:  'bg-emerald-500/10 text-emerald-400',
-  rejected:  'bg-red-500/10 text-red-400',
-  cancelled: 'bg-zinc-500/10 text-zinc-400',
-}
+const statusTone = {
+  pending: 'brand',
+  approved: 'good',
+  rejected: 'bad',
+  cancelled: 'neutral',
+} as const
 const statusLabel: Record<string, string> = {
   pending: 'Waiting', approved: 'Approved', rejected: 'Declined', cancelled: 'Withdrawn',
 }
@@ -95,19 +99,24 @@ export default async function MyTrainerPage() {
 
   if (!linked) {
     return (
-      <div className="space-y-5">
+      <div className="rise space-y-6">
         <Header />
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-8 max-w-xl">
-          <p className="text-sm font-medium text-white">No trainer linked to your Discord account</p>
-          <p className="text-xs text-zinc-500 mt-1.5 leading-relaxed">
-            Link your trainer in any server where UmaCore tracks your club, then refresh this page.
-          </p>
-          <div className="mt-5 bg-[#111118] border border-white/5 rounded px-4 py-3 font-mono text-xs text-zinc-300">
-            /link_trainer trainer_name:<span className="text-violet-300">YourName</span> club:<span className="text-violet-300">YourClub</span>
-          </div>
-          <p className="text-[11px] text-zinc-600 mt-3 leading-relaxed">
-            The name has to match your in-game trainer name exactly. Your club needs to be tracked by UmaCore already — ask a club leader if it isn&apos;t.
-          </p>
+        <div className="panel max-w-2xl">
+          <EmptyState
+            icon={Link2}
+            title="No trainer linked to your Discord account yet"
+            body="Link your trainer in any server where UmaCore tracks your club, then refresh this page."
+            action={
+              <div className="space-y-3">
+                <code className="block rounded-[10px] border border-line bg-surface-2 px-4 py-3 text-left font-mono text-[13px] text-fg-soft">
+                  /link_trainer trainer_name:<span className="text-brand">YourName</span> club:<span className="text-brand">YourClub</span>
+                </code>
+                <p className="mx-auto max-w-sm text-xs leading-relaxed text-fg-subtle">
+                  The name has to match your in-game trainer name exactly. Your club must already be tracked by UmaCore, so ask a club leader if it isn&apos;t.
+                </p>
+              </div>
+            }
+          />
         </div>
         <TransferList transfers={transfers} />
       </div>
@@ -115,8 +124,8 @@ export default async function MyTrainerPage() {
   }
 
   const [history, bomb, standing] = await Promise.all([
-    // quota_history is cleared at each monthly reset, but keep to the latest month
-    // anyway so a club that missed its reset can't blend two months into one chart.
+    // quota_history keeps every month, and cumulative_fans restarts each one — so
+    // only the latest month belongs on one chart.
     query<HistoryEntry>(`
       SELECT date::text, cumulative_fans::text, expected_fans::text,
              deficit_surplus::text, days_behind
@@ -155,7 +164,7 @@ export default async function MyTrainerPage() {
 
   let stats: {
     fans: number; surplus: number; daysLeft: number; pace: number | null
-    projected: number | null; target: number; catchUp: number | null
+    projected: number | null; target: number; catchUp: number | null; expectedNow: number
   } | null = null
 
   if (latest) {
@@ -182,123 +191,147 @@ export default async function MyTrainerPage() {
     const projected = pace !== null ? fans + pace * daysLeft : null
     const catchUp   = surplus < 0 && daysLeft > 0 ? perDayQuota + -surplus / daysLeft : null
 
-    stats = { fans, surplus, daysLeft, pace, projected, target, catchUp }
+    stats = { fans, surplus, daysLeft, pace, projected, target, catchUp, expectedNow: Number(latest.expected_fans) }
   }
+
+  // Consecutive most-recent daily checks at or above quota.
+  let streak = 0
+  for (let i = history.length - 1; i >= 0 && Number(history[i].deficit_surplus) >= 0; i--) streak++
 
   const daysBehind = latest?.days_behind ?? 0
   const trigger    = linked.bomb_trigger_days
+  const ahead      = stats ? stats.surplus >= 0 : true
 
   return (
-    <div className="space-y-5">
+    <div className="rise space-y-6">
       <Header />
-
-      {/* Identity */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-base font-semibold text-white">{linked.trainer_name}</h2>
-          <span className={`inline-flex items-center gap-1.5 text-xs px-2 py-0.5 rounded font-medium ${
-            linked.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-zinc-500'
-          }`}>
-            <span className={`w-1 h-1 rounded-full ${linked.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-            {linked.is_active ? 'In club' : 'No longer seen in club'}
-          </span>
-        </div>
-        <div className="text-right">
-          <p className="text-xs text-zinc-400">
-            {linked.public_enabled && linked.public_slug
-              ? <Link href={`/club/${linked.public_slug}`} className="hover:text-white transition-colors">{linked.club_name}</Link>
-              : linked.club_name}
-          </p>
-          {linked.trainer_id && <p className="text-[10px] text-zinc-600">Trainer ID {linked.trainer_id}</p>}
-        </div>
-      </div>
 
       {/* Bomb / risk banner */}
       {bomb ? (
-        <div className={`rounded-lg px-5 py-3.5 border ${
-          bomb.days_remaining <= 1 ? 'bg-red-500/5 border-red-500/20' : 'bg-amber-500/5 border-amber-500/20'
+        <div className={`rounded-2xl border px-5 py-4 ${
+          bomb.days_remaining <= 1 ? 'border-bad/30 bg-bad/8' : 'border-warn/25 bg-warn/6'
         }`}>
-          <p className={`text-sm font-medium ${bomb.days_remaining <= 1 ? 'text-red-300' : 'text-amber-300'}`}>
-            💣 Bomb active — {bomb.days_remaining} day{bomb.days_remaining === 1 ? '' : 's'} left
+          <p className={`text-[15px] font-semibold ${bomb.days_remaining <= 1 ? 'text-bad' : 'text-warn'}`}>
+            💣 Bomb active: {bomb.days_remaining} day{bomb.days_remaining === 1 ? '' : 's'} left
           </p>
-          <p className="text-xs text-zinc-400 mt-1">
-            It defuses the first daily check you&apos;re back at or above quota.
+          <p className="mt-1 text-[13px] leading-relaxed text-fg-muted">
+            It defuses at the first daily check where you&apos;re back at or above quota.
             {stats && stats.surplus < 0 && bomb.days_remaining > 0 && (
-              <> You&apos;re {formatFans(-stats.surplus)} short — about <span className="text-white">{formatFans(Math.ceil(-stats.surplus / bomb.days_remaining))} extra a day</span> on top of quota clears it in time.</>
+              <> You&apos;re {formatFans(-stats.surplus)} short, so about <span className="font-medium text-fg">{formatFans(Math.ceil(-stats.surplus / bomb.days_remaining))} extra a day</span> on top of quota clears it in time.</>
             )}
           </p>
         </div>
       ) : linked.bombs_enabled && linked.is_active && daysBehind > 0 && daysBehind < trigger ? (
-        <div className="rounded-lg px-5 py-3.5 border bg-amber-500/5 border-amber-500/15">
-          <p className="text-sm font-medium text-amber-300">
+        <div className="rounded-2xl border border-warn/20 bg-warn/6 px-5 py-4">
+          <p className="text-[15px] font-semibold text-warn">
             Behind {daysBehind} day{daysBehind === 1 ? '' : 's'} in a row
           </p>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="mt-1 text-[13px] text-fg-muted">
             A bomb starts after {trigger} days in a row. Getting back on track at any daily check resets the count.
           </p>
         </div>
       ) : null}
 
-      {/* Stats */}
-      {stats ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            {
-              label: stats.surplus >= 0 ? 'Ahead of quota' : 'Behind quota',
-              value: (stats.surplus >= 0 ? '+' : '') + formatFans(stats.surplus),
-              color: stats.surplus >= 0 ? 'text-emerald-400' : 'text-amber-400',
-            },
-            {
-              label: 'Fans this month',
-              value: formatFans(stats.fans),
-              sub: standing ? `#${standing.pos} of ${standing.total} in club` : undefined,
-            },
-            {
-              label: stats.catchUp ? 'Need / day to catch up' : 'Daily target',
-              value: formatFans(Math.ceil(stats.catchUp ?? perDayQuota)),
-              color: stats.catchUp ? 'text-amber-400' : undefined,
-              sub: stats.pace !== null ? `Your pace: ${formatFans(Math.round(stats.pace))} / day` : undefined,
-            },
-            {
-              label: 'Month-end projection',
-              value: stats.projected !== null ? formatFans(Math.round(stats.projected)) : '—',
-              color: stats.projected === null ? undefined
-                : stats.projected >= stats.target ? 'text-emerald-400' : 'text-amber-400',
-              sub: `Target ${formatFans(Math.round(stats.target))} · ${stats.daysLeft}d left`,
-            },
-          ].map(({ label, value, color, sub }) => (
-            <div key={label} className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
-              <p className="text-xs text-zinc-500">{label}</p>
-              <p className={`mt-1.5 text-xl font-semibold ${color ?? 'text-white'}`}>{value}</p>
-              {sub && <p className="text-[10px] text-zinc-600 mt-1">{sub}</p>}
+      {/* Hero */}
+      <section className="panel grid grid-cols-1 overflow-hidden lg:grid-cols-[1fr_280px]">
+        <div className="space-y-6 p-6">
+          <div className="flex items-center gap-3">
+            <Avatar name={linked.trainer_name} size={44} />
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold text-fg">{linked.trainer_name}</p>
+              <p className="truncate text-[13px] text-fg-subtle">
+                {linked.public_enabled && linked.public_slug
+                  ? <Link href={`/club/${linked.public_slug}`} className="hover:text-fg-soft">{linked.club_name}</Link>
+                  : linked.club_name}
+                {linked.trainer_id && <> · ID <span className="num">{linked.trainer_id}</span></>}
+              </p>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-6 text-xs text-zinc-500">
-          No quota data for this month yet — it appears after your club&apos;s next daily check.
-        </div>
-      )}
-
-      {/* Chart */}
-      {history.length >= 2 && (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <p className="text-sm font-medium text-white">This month</p>
-            <QuotaChartLegend />
+            {!linked.is_active && <Chip className="ml-auto">No longer seen in club</Chip>}
           </div>
-          <QuotaChart data={history.map(h => ({
-            date: h.date,
-            cumulative: Number(h.cumulative_fans),
-            expected: Number(h.expected_fans),
-          }))} />
-          <p className="text-[10px] text-zinc-600 mt-2">
-            Projection assumes you keep your recent pace — it&apos;s an estimate, not a promise.
-          </p>
+
+          {stats ? (
+            <>
+              <div>
+                <p className={`num font-display text-[44px] font-semibold leading-none tracking-[-0.03em] ${ahead ? 'text-good' : 'text-warn'}`}>
+                  {formatDelta(stats.surplus)}
+                </p>
+                <p className="mt-2 text-[15px] font-medium text-fg">{ahead ? 'ahead of quota' : 'behind quota'}</p>
+                <p className="mt-1.5 max-w-[60ch] text-[13px] leading-relaxed text-fg-muted text-pretty">
+                  {coaching(stats, perDayQuota)}
+                </p>
+              </div>
+
+              <MonthProgress fans={stats.fans} target={stats.target} expectedNow={stats.expectedNow} daysLeft={stats.daysLeft} />
+            </>
+          ) : (
+            <p className="text-[13px] text-fg-muted">
+              No quota data for this month yet. It appears after your club&apos;s next daily check.
+            </p>
+          )}
         </div>
+
+        <div className="grid grid-cols-2 border-t border-line bg-surface-2/40 lg:grid-cols-1 lg:border-t-0 lg:border-l">
+          <div className="p-6">
+            <p className="text-[13px] text-fg-muted">Place in club</p>
+            <p className="num mt-1 font-display text-[40px] font-semibold leading-none tracking-[-0.03em] text-fg">
+              {standing ? `#${standing.pos}` : '–'}
+            </p>
+            <p className="mt-1.5 text-xs text-fg-subtle">{standing ? `of ${standing.total} by fans this month` : 'Shows after the next check'}</p>
+          </div>
+          <div className="border-l border-line p-6 lg:border-t lg:border-l-0">
+            <p className="text-[13px] text-fg-muted">On-track streak</p>
+            <p className="mt-1 flex items-center gap-2 font-display text-[40px] font-semibold leading-none tracking-[-0.03em] text-fg">
+              <span className="num">{streak}</span>
+              {streak >= 3 && <Flame size={26} strokeWidth={1.75} className="text-brand" aria-hidden />}
+            </p>
+            <p className="mt-1.5 text-xs text-fg-subtle">
+              {streak === 0 ? 'Get back on track to start one' : `daily check${streak === 1 ? '' : 's'} in a row at or above quota`}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {stats && (
+        <StatStrip>
+          <Stat
+            label={stats.catchUp ? 'Needed per day to catch up' : 'Daily target'}
+            value={formatFans(Math.ceil(stats.catchUp ?? perDayQuota))}
+            tone={stats.catchUp ? 'warn' : 'neutral'}
+          />
+          <Stat
+            label="Your recent pace"
+            value={stats.pace !== null ? formatFans(Math.round(stats.pace)) : '–'}
+            tone={stats.pace === null ? 'neutral' : stats.pace >= (stats.catchUp ?? perDayQuota) ? 'good' : 'warn'}
+            hint="per day, last 7 days"
+          />
+          <Stat
+            label="Month-end projection"
+            value={stats.projected !== null ? formatFans(Math.round(stats.projected)) : '–'}
+            tone={stats.projected === null ? 'neutral' : stats.projected >= stats.target ? 'good' : 'warn'}
+            hint={`Target ${formatFans(Math.round(stats.target))}`}
+          />
+          <Stat label="Days left this month" value={stats.daysLeft} />
+        </StatStrip>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+      {history.length >= 2 && (
+        <Panel
+          title={latest ? monthLabel(latest.date.slice(0, 7)) : 'This month'}
+          description="Hover the chart for any day's numbers. The projection assumes you keep your recent pace."
+          action={<QuotaChartLegend projected={!!stats?.pace} />}
+        >
+          <QuotaChart
+            data={history.map(h => ({
+              date: h.date,
+              cumulative: Number(h.cumulative_fans),
+              expected: Number(h.expected_fans),
+            }))}
+            projection={stats?.pace != null ? { pace: stats.pace, perDayQuota } : null}
+          />
+        </Panel>
+      )}
+
+      <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-2">
         <NotificationToggles initial={{
           notify_on_bombs: linked.notify_on_bombs,
           notify_on_deficit: linked.notify_on_deficit,
@@ -309,45 +342,91 @@ export default async function MyTrainerPage() {
   )
 }
 
-function Header() {
+function coaching(
+  s: { surplus: number; daysLeft: number; pace: number | null; projected: number | null; target: number; catchUp: number | null; fans: number },
+  perDayQuota: number,
+) {
+  if (s.daysLeft === 0) {
+    return s.surplus >= 0 ? 'Last day of the month, and you made quota.' : 'Last day of the month. Every fan today still counts.'
+  }
+  if (s.surplus < 0) {
+    const need = formatFans(Math.ceil(s.catchUp ?? perDayQuota))
+    const pace = s.pace !== null ? ` You're averaging ${formatFans(Math.round(s.pace))} a day right now.` : ''
+    return `About ${need} a day for the rest of the month gets you back on track.${pace}`
+  }
+  if (s.projected === null) return 'Keep up the daily runs to stay ahead.'
+  if (s.projected >= s.target) {
+    return `At this pace you finish around ${formatFans(Math.round(s.projected))}, ${formatFans(Math.round(s.projected - s.target))} over the month target.`
+  }
+  const need = Math.ceil((s.target - s.fans) / s.daysLeft)
+  return `Ahead for now, but this pace finishes around ${formatFans(Math.round(s.projected))}. Around ${formatFans(need)} a day keeps you on target.`
+}
+
+function MonthProgress({ fans, target, expectedNow, daysLeft }: { fans: number; target: number; expectedNow: number; daysLeft: number }) {
+  const pct = target > 0 ? Math.min(100, (fans / target) * 100) : 0
+  const mark = target > 0 ? Math.min(100, (expectedNow / target) * 100) : 0
+  const ahead = fans >= expectedNow
   return (
     <div>
-      <h1 className="text-lg font-semibold text-white">My trainer</h1>
-      <p className="text-xs text-zinc-500 mt-0.5">
-        Your own quota progress, from the trainer you linked with <code className="text-zinc-400">/link_trainer</code>.
-      </p>
+      <div className="mb-2 flex items-baseline justify-between gap-3 text-[13px]">
+        <span className="text-fg-muted">
+          <span className="num font-medium text-fg">{formatFans(fans)}</span> of {formatFans(Math.round(target))} month target
+        </span>
+        <span className="num text-fg-subtle">{daysLeft} day{daysLeft === 1 ? '' : 's'} left</span>
+      </div>
+      <div
+        className="relative h-3 rounded-full bg-surface-3"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(pct)}
+        aria-label="Fans toward month target"
+      >
+        <div
+          className={`h-full rounded-full ${ahead ? 'bg-good' : 'bg-warn'} transition-[width] duration-700 ease-out`}
+          style={{ width: `${pct}%` }}
+        />
+        <div className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-fg" style={{ left: `calc(${mark}% - 1px)` }} title="Where quota expects you today" />
+      </div>
+      <p className="mt-2 text-xs text-fg-subtle">The white tick is where quota expects you today.</p>
     </div>
+  )
+}
+
+function Header() {
+  return (
+    <PageHeader
+      title="My trainer"
+      description={<>Your own quota progress, from the trainer you linked with <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-fg-soft">/link_trainer</code>.</>}
+    />
   )
 }
 
 function TransferList({ transfers }: { transfers: Transfer[] }) {
   if (!transfers.length) return null
   return (
-    <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-white/5">
-        <p className="text-sm font-medium text-white">Transfer requests</p>
-      </div>
-      <div className="divide-y divide-white/5">
+    <Panel title="Transfer requests" flush>
+      <ul className="divide-y divide-line border-t border-line">
         {transfers.map(t => (
-          <div key={t.request_id} className="px-5 py-3 flex items-start justify-between gap-4">
+          <li key={t.request_id} className="flex items-start justify-between gap-4 px-5 py-3">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-zinc-300 truncate">{t.to_club_name}</p>
-              <p className="text-[10px] text-zinc-600">
+              <p className="truncate text-[13px] font-medium text-fg-soft">{t.to_club_name}</p>
+              <p className="num text-xs text-fg-subtle">
                 {t.status === 'pending'
-                  ? `#${t.queue_pos} in queue · requested ${new Date(t.created_at).toLocaleDateString()}`
+                  ? `#${t.queue_pos} in queue, requested ${new Date(t.created_at).toLocaleDateString()}`
                   : `Decided ${new Date(t.decided_at ?? t.created_at).toLocaleDateString()}`}
               </p>
-              {t.decision_note && <p className="text-[10px] text-zinc-500 mt-1">{t.decision_note}</p>}
+              {t.decision_note && <p className="mt-1 text-xs text-fg-muted">{t.decision_note}</p>}
             </div>
-            <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded ${statusStyle[t.status] ?? 'bg-zinc-500/10 text-zinc-400'}`}>
+            <Chip tone={statusTone[t.status as keyof typeof statusTone] ?? 'neutral'}>
               {statusLabel[t.status] ?? t.status}
-            </span>
-          </div>
+            </Chip>
+          </li>
         ))}
-      </div>
-      <p className="px-5 py-2.5 border-t border-white/5 text-[10px] text-zinc-600">
-        Withdraw a request with <code className="text-zinc-500">/my_transfers</code> in Discord.
+      </ul>
+      <p className="border-t border-line px-5 py-3 text-xs text-fg-subtle">
+        Withdraw a request with <code className="font-mono text-fg-muted">/my_transfers</code> in Discord.
       </p>
-    </div>
+    </Panel>
   )
 }

@@ -5,6 +5,7 @@ import { effectiveAdminGuildIds } from '@/lib/guild-check'
 import { getBotGuilds } from '@/lib/bot-guilds'
 import ClubDetail from './ClubDetail'
 import AddClubButton from './AddClubModal'
+import { PageHeader, EmptyState } from '@/components/dash/ui'
 
 export type Club = {
   club_id: string
@@ -72,22 +73,18 @@ export default async function SettingsPage() {
     : []
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-lg font-semibold text-white">
-            Settings{selected ? ` · ${selected.club_name}` : ''}
-          </h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Configuration for the selected club</p>
-        </div>
-        <AddClubButton adminGuilds={addableGuilds} />
-      </div>
+    <div className="rise max-w-4xl space-y-6">
+      <PageHeader
+        title="Settings"
+        description={selected ? `How UmaCore tracks ${selected.club_name}. Most fields save when you leave them.` : undefined}
+        actions={<AddClubButton adminGuilds={addableGuilds} />}
+      />
 
       {selected ? (
         <ClubDetail key={selected.club_id} club={selected} quotaHistory={quotaHistory} />
       ) : (
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-8 text-xs text-zinc-600 text-center">
-          No club selected. Add a club or pick one from the switcher above.
+        <div className="panel">
+          <EmptyState title="No club selected" body="Pick a club from the switcher in the sidebar, or add a new one." />
         </div>
       )}
     </div>

@@ -1,7 +1,9 @@
 import { query } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { resolveActiveClub } from '@/lib/active-club'
-import Link from 'next/link'
+import { Inbox, Info } from 'lucide-react'
+import { PageHeader, Chip, Avatar, EmptyState, NoClub } from '@/components/dash/ui'
+import LinkTabs from '@/components/dash/LinkTabs'
 import { TransferDecision } from './TransferActions'
 
 type TransferRow = {
@@ -26,11 +28,7 @@ function waitingFor(since: string): string {
   return `${days} days`
 }
 
-const statusStyle: Record<string, string> = {
-  approved:  'bg-emerald-500/10 text-emerald-400',
-  rejected:  'bg-red-500/10 text-red-400',
-  cancelled: 'bg-zinc-500/10 text-zinc-400',
-}
+const statusTone = { approved: 'good', rejected: 'bad', cancelled: 'neutral' } as const
 const statusLabel: Record<string, string> = {
   approved: 'Approved', rejected: 'Declined', cancelled: 'Withdrawn',
 }
@@ -45,16 +43,7 @@ export default async function TransfersPage({
   const session = await auth()
   const { active } = session ? await resolveActiveClub(session) : { active: null }
 
-  if (!active) {
-    return (
-      <div className="space-y-5">
-        <h1 className="text-lg font-semibold text-white">Transfers</h1>
-        <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-10 text-center text-xs text-zinc-600">
-          No club selected. Add a club or pick one from the switcher above.
-        </div>
-      </div>
-    )
-  }
+  if (!active) return <NoClub title="Transfers" />
 
   const queue = await query<TransferRow>(`
     SELECT request_id::text AS request_id, from_club_name,
@@ -77,124 +66,106 @@ export default async function TransfersPage({
     LIMIT 50
   `, [active.club_id]).catch(() => [])
 
-  const rows = tab === 'queue' ? queue : decided
+  const isQueue = tab === 'queue'
+  const rows = isQueue ? queue : decided
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h1 className="text-lg font-semibold text-white">Transfers · {active.club_name}</h1>
-        <p className="text-xs text-zinc-500 mt-0.5">
-          People waiting for a spot in this club. Members join the queue with <code className="text-zinc-400">/transfer_request</code>, which reads their trainer details from <code className="text-zinc-400">/link_trainer</code>.
-        </p>
-      </div>
+    <div className="rise space-y-6">
+      <PageHeader
+        title="Transfers"
+        description={<>People asking for a spot in {active.club_name}. Members join the queue with <code className="font-mono text-[13px] text-fg-soft">/transfer_request</code>, which reads their trainer from <code className="font-mono text-[13px] text-fg-soft">/link_trainer</code>.</>}
+      />
 
-      {tab === 'queue' && queue.length > 0 && (
-        <div className="bg-violet-500/5 border border-violet-500/15 rounded-lg px-5 py-3 flex items-center gap-3">
-          <span className="text-violet-400 text-sm">↳</span>
-          <p className="text-xs text-violet-200">
-            <span className="font-medium">{queue.length} waiting</span>
-            {' '}— position is order of arrival, not a rule. Approve whoever you want, in any order.
-            Approving DMs them to check their in-game invites.
+      {isQueue && queue.length > 0 && (
+        <div className="flex items-start gap-3 rounded-2xl border border-brand/20 bg-brand/6 px-5 py-4">
+          <Info size={18} strokeWidth={1.75} className="mt-0.5 shrink-0 text-brand" />
+          <p className="text-[13px] leading-relaxed text-fg-muted">
+            <span className="font-semibold text-fg">{queue.length} waiting.</span> Position is order of arrival, not a rule, so approve whoever you want in any order. Approving DMs them to check their in-game invites.
           </p>
         </div>
       )}
 
-      <div className="flex items-center border-b border-white/5">
-        {[
-          { label: 'Queue',   value: 'queue',   count: queue.length },
-          { label: 'Decided', value: 'decided', count: decided.length },
-        ].map(t => (
-          <Link key={t.value}
-            href={`?tab=${t.value}`}
-            className={`px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
-              tab === t.value ? 'border-violet-500 text-white' : 'border-transparent text-zinc-500 hover:text-zinc-300'
-            }`}>
-            {t.label} <span className="text-zinc-600">{t.count}</span>
-          </Link>
-        ))}
-      </div>
+      <LinkTabs
+        id="transfers"
+        tabs={[
+          { label: 'Queue',   href: '?tab=queue',   count: queue.length,   current: isQueue },
+          { label: 'Decided', href: '?tab=decided', count: decided.length, current: !isQueue },
+        ]}
+      />
 
-      <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-white/5">
-              {tab === 'queue' && (
-                <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal w-12">#</th>
-              )}
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Trainer</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Discord</th>
-              <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Coming from</th>
-              {tab === 'queue' ? (
-                <>
-                  <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Waiting</th>
-                  <th className="px-5 py-3 text-right text-xs text-zinc-500 font-normal">Decision</th>
-                </>
-              ) : (
-                <>
-                  <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Outcome</th>
-                  <th className="px-5 py-3 text-left text-xs text-zinc-500 font-normal">Decided by</th>
-                </>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {rows.map((r, i) => (
-              <tr key={r.request_id} className="hover:bg-white/[0.02] transition-colors align-top">
-                {tab === 'queue' && (
-                  <td className="px-5 py-3 text-xs text-zinc-600">{i + 1}</td>
-                )}
-                <td className="px-5 py-3">
-                  <p className="text-xs font-medium text-white">{r.trainer_name}</p>
-                  {r.trainer_id && <p className="text-[10px] text-zinc-600">{r.trainer_id}</p>}
-                  {r.note && <p className="text-[10px] text-zinc-500 mt-1 max-w-xs">{r.note}</p>}
-                </td>
-                <td className="px-5 py-3">
-                  <p className="text-xs text-zinc-400">{r.discord_name}</p>
-                  <p className="text-[10px] text-zinc-600">{r.discord_user_id}</p>
-                </td>
-                <td className="px-5 py-3 text-xs text-zinc-400">{r.from_club_name ?? '—'}</td>
-                {tab === 'queue' ? (
-                  <>
-                    <td className="px-5 py-3 text-xs text-zinc-500">{waitingFor(r.created_at)}</td>
-                    <td className="px-5 py-3">
-                      <TransferDecision requestId={r.request_id} trainerName={r.trainer_name} />
+      <div className="panel overflow-hidden">
+        {rows.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="table-ui">
+              <thead>
+                <tr>
+                  {isQueue && <th className="w-12">#</th>}
+                  <th>Trainer</th>
+                  <th className="hidden md:table-cell">Discord</th>
+                  <th className="hidden sm:table-cell">Coming from</th>
+                  {isQueue ? (
+                    <>
+                      <th className="hidden sm:table-cell">Waiting</th>
+                      <th className="text-right">Decision</th>
+                    </>
+                  ) : (
+                    <>
+                      <th>Outcome</th>
+                      <th className="hidden md:table-cell">Decided by</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={r.request_id} className="align-top">
+                    {isQueue && <td className="num text-fg-subtle">{i + 1}</td>}
+                    <td>
+                      <div className="flex items-start gap-3">
+                        <Avatar name={r.trainer_name} size={30} />
+                        <div className="min-w-0">
+                          <p className="font-medium text-fg-soft">{r.trainer_name}</p>
+                          {r.trainer_id && <p className="num text-xs text-fg-subtle">{r.trainer_id}</p>}
+                          {r.note && <p className="mt-1.5 max-w-xs text-xs leading-relaxed text-fg-muted">&ldquo;{r.note}&rdquo;</p>}
+                        </div>
+                      </div>
                     </td>
-                  </>
-                ) : (
-                  <>
-                    <td className="px-5 py-3">
-                      <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded ${statusStyle[r.status] ?? 'bg-zinc-500/10 text-zinc-400'}`}>
-                        {statusLabel[r.status] ?? r.status}
-                      </span>
-                      {r.decision_note && (
-                        <p className="text-[10px] text-zinc-500 mt-1 max-w-xs">{r.decision_note}</p>
-                      )}
+                    <td className="hidden md:table-cell">
+                      <p className="text-fg-muted">{r.discord_name}</p>
+                      <p className="num text-xs text-fg-subtle">{r.discord_user_id}</p>
                     </td>
-                    <td className="px-5 py-3 text-xs text-zinc-500">
-                      {r.decided_by_name ?? '—'}
-                      {r.decided_at && (
-                        <p className="text-[10px] text-zinc-600">
-                          {new Date(r.decided_at).toLocaleDateString()}
-                        </p>
-                      )}
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-5 py-8 text-xs text-zinc-600 text-center">
-                  {tab === 'queue'
-                    ? 'Nobody is waiting to transfer in.'
-                    : 'No decided requests yet.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-        </div>
+                    <td className="hidden text-fg-muted sm:table-cell">{r.from_club_name ?? '–'}</td>
+                    {isQueue ? (
+                      <>
+                        <td className="hidden text-fg-muted sm:table-cell">{waitingFor(r.created_at)}</td>
+                        <td><TransferDecision requestId={r.request_id} trainerName={r.trainer_name} /></td>
+                      </>
+                    ) : (
+                      <>
+                        <td>
+                          <Chip tone={statusTone[r.status as keyof typeof statusTone] ?? 'neutral'}>
+                            {statusLabel[r.status] ?? r.status}
+                          </Chip>
+                          {r.decision_note && <p className="mt-1.5 max-w-xs text-xs text-fg-muted">{r.decision_note}</p>}
+                        </td>
+                        <td className="hidden md:table-cell">
+                          <p className="text-fg-muted">{r.decided_by_name ?? '–'}</p>
+                          {r.decided_at && <p className="num text-xs text-fg-subtle">{new Date(r.decided_at).toLocaleDateString()}</p>}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            icon={Inbox}
+            title={isQueue ? 'Nobody is waiting to transfer in' : 'No decided requests yet'}
+            body={isQueue ? 'New requests show up here and in the sidebar count.' : 'Approved and declined requests are kept here.'}
+          />
+        )}
       </div>
     </div>
   )

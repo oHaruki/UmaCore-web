@@ -5,6 +5,13 @@ import { accessibleClubIds } from '@/lib/guild-check'
 import { getActiveClubId } from '@/lib/active-club'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import { Settings as SettingsIcon, Trophy, Check, ArrowRight } from 'lucide-react'
+import { formatDay, formatDelta, formatFans } from '@/lib/format'
+import { monthStart, monthLabel, inMonthSql } from '@/lib/month'
+import { PageHeader, Panel, Stat, StatStrip, Chip, SplitMeter, Avatar, EmptyState } from '@/components/dash/ui'
+import LineChart from '@/components/dash/LineChart'
+import SyncButton from '../reports/SyncButton'
+import StandingsTable from './StandingsTable'
 
 type ClubOption = { club_id: string; club_name: string }
 
@@ -22,6 +29,7 @@ type ClubDetail = {
   behind: string
   avg_surplus: string
   latest_rank: string | null
+  circle_id: string | null
 }
 
 type MemberStanding = {
@@ -30,6 +38,7 @@ type MemberStanding = {
   deficit_surplus: string
   cumulative_fans: string
   days_behind: string
+  bomb_days: string | null
 }
 
 type ComplianceDay = {
@@ -67,8 +76,12 @@ export default async function ClubOverviewPage({
 
   if (clubs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-zinc-500">No clubs found.</p>
+      <div className="panel">
+        <EmptyState
+          title="No clubs yet"
+          body="Add a club from the Overview to see its home page."
+          action={<Link href="/dashboard" className="btn btn-secondary">Go to Overview</Link>}
+        />
       </div>
     )
   }
@@ -79,10 +92,18 @@ export default async function ClubOverviewPage({
     rawClubId ??
     (cookieId && clubs.some(c => c.club_id === cookieId) ? cookieId : clubs[0].club_id)
 
+  // Everything below is the club's current quota month: the month of its latest daily check.
+  const [current] = await query<{ month: string | null; last: string | null }>(`
+    SELECT to_char(MAX(date), 'YYYY-MM') AS month, MAX(date)::text AS last
+    FROM quota_history WHERE club_id = $1
+  `, [clubId]).catch(() => [])
+  const month = current?.month ?? null
+  const start = month ? monthStart(month) : null
+
   const [clubRows, members, compliance, rankHistory, bombStatRows] = await Promise.all([
     query<ClubDetail>(`
       SELECT c.club_id::text, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota, c.quota_period,
-        c.is_active, c.bombs_enabled,
+        c.is_active, c.bombs_enabled, c.circle_id,
         c.bomb_trigger_days::text, c.bomb_countdown_days::text,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus IS NOT NULL)::text AS active_members,
         COUNT(m.member_id) FILTER (WHERE m.is_active AND lat.deficit_surplus >= 0)::text AS on_track,
@@ -92,24 +113,30 @@ export default async function ClubOverviewPage({
       FROM clubs c
       LEFT JOIN members m ON m.club_id = c.club_id
       LEFT JOIN LATERAL (
-        SELECT deficit_surplus FROM quota_history WHERE member_id = m.member_id ORDER BY date DESC LIMIT 1
+        SELECT deficit_surplus FROM quota_history
+        WHERE member_id = m.member_id AND club_id = c.club_id AND ${inMonthSql('date', '$3')}
+        ORDER BY date DESC LIMIT 1
       ) lat ON true
       WHERE c.club_id = $1 AND c.club_id::text = ANY($2::text[])
       GROUP BY c.club_id
-    `, [clubId, clubIds]).catch(() => []),
+    `, [clubId, clubIds, start]).catch(() => []),
 
     query<MemberStanding>(`
       SELECT m.member_id::text, m.trainer_name,
-        lat.deficit_surplus::text, lat.cumulative_fans::text, lat.days_behind::text
+        lat.deficit_surplus::text, lat.cumulative_fans::text, lat.days_behind::text,
+        (SELECT b.days_remaining::text FROM bombs b
+          WHERE b.member_id = m.member_id AND b.is_active
+          ORDER BY b.activation_date DESC LIMIT 1) AS bomb_days
       FROM members m
       JOIN LATERAL (
         SELECT deficit_surplus, cumulative_fans, days_behind
-        FROM quota_history WHERE member_id = m.member_id
+        FROM quota_history
+        WHERE member_id = m.member_id AND club_id = $1 AND ${inMonthSql('date', '$2')}
         ORDER BY date DESC LIMIT 1
       ) lat ON true
       WHERE m.club_id = $1 AND m.is_active = true
       ORDER BY lat.deficit_surplus DESC
-    `, [clubId]).catch(() => []),
+    `, [clubId, start]).catch(() => []),
 
     query<ComplianceDay>(`
       SELECT qh.date::text,
@@ -117,16 +144,16 @@ export default async function ClubOverviewPage({
         COUNT(DISTINCT qh.member_id) FILTER (WHERE qh.deficit_surplus >= 0)::text AS on_track
       FROM quota_history qh
       JOIN members m ON m.member_id = qh.member_id AND m.is_active = true
-      WHERE qh.club_id = $1 AND qh.date >= CURRENT_DATE - INTERVAL '30 days'
+      WHERE qh.club_id = $1 AND ${inMonthSql('qh.date', '$2')}
       GROUP BY qh.date ORDER BY qh.date ASC
-    `, [clubId]).catch(() => []),
+    `, [clubId, start]).catch(() => []),
 
     query<RankDay>(`
       SELECT date::text, club_rank::text
       FROM club_rank_history
-      WHERE club_id = $1 AND date >= CURRENT_DATE - INTERVAL '30 days'
+      WHERE club_id = $1 AND ${inMonthSql('date', '$2')}
       ORDER BY date ASC
-    `, [clubId]).catch(() => []),
+    `, [clubId, start]).catch(() => []),
 
     query<BombStats>(`
       SELECT
@@ -148,366 +175,231 @@ export default async function ClubOverviewPage({
 
   const totalActive = Number(club.active_members)
   const onTrack = Number(club.on_track)
+  const behind = Number(club.behind)
   const compliancePct = totalActive > 0 ? Math.round((onTrack / totalActive) * 100) : 0
   const avgSurplus = Number(club.avg_surplus ?? 0)
+  const activeBombs = Number(bombStats.active_bombs)
 
-  const topPerformers = members.slice(0, 3)
-  const struggling = [...members].reverse().filter(m => Number(m.deficit_surplus) < 0).slice(0, 3)
+  const rows = members.map(m => ({
+    member_id: m.member_id,
+    trainer_name: m.trainer_name,
+    surplus: Number(m.deficit_surplus),
+    fans: Number(m.cumulative_fans),
+    days_behind: Number(m.days_behind),
+    bomb_days: m.bomb_days === null ? null : Number(m.bomb_days),
+  }))
+  const topPerformers = rows.slice(0, 3)
+  const struggling = [...rows].reverse().filter(m => m.surplus < 0).slice(0, 5)
+
+  const compliancePoints = compliance.map(d =>
+    Number(d.total) > 0 ? (Number(d.on_track) / Number(d.total)) * 100 : 0
+  )
+  const complianceDelta = compliancePoints.length >= 2
+    ? Math.round(compliancePoints[compliancePoints.length - 1] - compliancePoints[0])
+    : null
+
+  const monthName = month ? monthLabel(month) : null
+  const ranks = cleanRanks(rankHistory)
+  const rankDelta = ranks.length >= 2
+    ? Number(ranks[0].club_rank) - Number(ranks[ranks.length - 1].club_rank)
+    : null
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-lg font-semibold text-white">Club home · {club.club_name}</h1>
-          <p className="text-xs text-zinc-500 mt-0.5">Detailed stats and member standings</p>
-        </div>
-      </div>
+    <div className="rise space-y-6">
+      <PageHeader
+        title={club.club_name}
+        meta={
+          <>
+            <Chip tone={club.is_active ? 'good' : 'neutral'}>{club.is_active ? 'Active' : 'Inactive'}</Chip>
+            {monthName && (
+              <Chip tone="brand" title={current?.last ? `Latest daily check ${formatDay(current.last)}` : undefined}>
+                {monthName}{current?.last ? `, as of ${formatDay(current.last)}` : ''}
+              </Chip>
+            )}
+            <Chip className="num">{formatFans(Number(club.daily_quota))} fans per {periodWord(club.quota_period)}</Chip>
+            {club.bombs_enabled
+              ? <Chip>Bomb after {club.bomb_trigger_days} days behind, {club.bomb_countdown_days} days to recover</Chip>
+              : <Chip>Bombs off</Chip>}
+          </>
+        }
+        actions={
+          <>
+            <SyncButton clubId={club.club_id} hasCircleId={!!club.circle_id} />
+            <Link href="/dashboard/settings" className="btn btn-secondary">
+              <SettingsIcon size={15} strokeWidth={1.75} />
+              Settings
+            </Link>
+          </>
+        }
+      />
 
-      {/* Club identity bar */}
-      <div className="bg-[#0d0d14] border border-white/5 rounded-lg px-5 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <span className={`w-2 h-2 rounded-full ${club.is_active ? 'bg-emerald-400' : 'bg-zinc-600'}`} />
-          <p className="text-sm font-semibold text-white">{club.club_name}</p>
-          <span className="text-xs text-zinc-600 capitalize">{club.quota_period} quota</span>
-        </div>
-        <div className="flex items-center gap-6 text-xs text-zinc-500">
-          <span>{formatFans(Number(club.daily_quota))} fans / day</span>
-          {club.bombs_enabled && (
-            <span>Bomb trigger: {club.bomb_trigger_days}d behind · {club.bomb_countdown_days}d to resolve</span>
+      <StatStrip>
+        <Stat label="Active members" value={club.active_members} />
+        <Stat
+          label="On track"
+          value={`${compliancePct}%`}
+          tone={totalActive ? (compliancePct >= 80 ? 'good' : 'warn') : 'neutral'}
+          hint={`${onTrack} of ${totalActive}`}
+        />
+        <Stat label="Average surplus" value={formatDelta(avgSurplus)} tone={avgSurplus >= 0 ? 'good' : 'warn'} />
+        <Stat label="Club rank" value={club.latest_rank ? `#${Number(club.latest_rank).toLocaleString('en-US')}` : '–'} />
+        <Stat label="Active bombs" value={activeBombs} tone={activeBombs > 0 ? 'bad' : 'neutral'} />
+      </StatStrip>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+        <Panel
+          className="lg:col-span-3"
+          title="Members on track"
+          description={monthName ? `Share at or above quota at each check in ${monthName}` : 'Share at or above quota at each check'}
+          action={complianceDelta !== null && (
+            <Chip tone={complianceDelta >= 0 ? 'good' : 'warn'} className="num">
+              {complianceDelta >= 0 ? '+' : ''}{complianceDelta} pts
+            </Chip>
           )}
-          {club.latest_rank && <span>Current rank #{club.latest_rank}</span>}
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-        {[
-          { label: 'Active members', value: club.active_members },
-          { label: 'On track', value: `${club.on_track} (${compliancePct}%)`, color: 'text-emerald-400' },
-          { label: 'Behind quota', value: club.behind, color: Number(club.behind) > 0 ? 'text-amber-400' : undefined },
-          {
-            label: 'Avg surplus',
-            value: (avgSurplus >= 0 ? '+' : '') + formatFans(avgSurplus),
-            color: avgSurplus >= 0 ? 'text-emerald-400' : 'text-amber-400',
-          },
-          { label: 'Current rank', value: club.latest_rank ? `#${club.latest_rank}` : '—' },
-          {
-            label: 'Active bombs',
-            value: bombStats.active_bombs,
-            color: Number(bombStats.active_bombs) > 0 ? 'text-red-400' : undefined,
-          },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[#0d0d14] border border-white/5 rounded-lg p-4">
-            <p className="text-xs text-zinc-500">{label}</p>
-            <p className={`mt-1.5 text-xl font-semibold ${color ?? 'text-white'}`}>{value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="md:col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4 shrink-0">
-            <p className="text-sm font-medium text-white">Quota compliance (30d)</p>
-            <span className="text-xs text-zinc-500">% of active members on track per day</span>
-          </div>
-          <div className="flex-1 min-h-[180px]">
-            {compliance.length >= 2 ? (
-              <ComplianceChart data={compliance} />
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-xs text-zinc-600">Not enough data yet</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="md:col-span-2 bg-[#0d0d14] border border-white/5 rounded-lg p-5 flex flex-col">
-          <div className="flex items-center justify-between mb-4 shrink-0">
-            <p className="text-sm font-medium text-white">Club rank (30d)</p>
-            <span className="text-xs text-zinc-500">Lower is better</span>
-          </div>
-          <div className="flex-1 min-h-[180px]">
-            {rankHistory.length >= 2 ? (
-              <RankChart data={rankHistory} />
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-xs text-zinc-600">No rank data yet</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Member standings + side panels */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Full standings table */}
-        <div className="md:col-span-3 bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-            <p className="text-sm font-medium text-white">Member standings</p>
-            <span className="text-xs text-zinc-600">{members.length} active</span>
-          </div>
-          <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/5">
-                <th className="px-4 py-3 text-left text-xs text-zinc-500 font-normal w-8">#</th>
-                <th className="px-4 py-3 text-left text-xs text-zinc-500 font-normal">Trainer</th>
-                <th className="px-4 py-3 text-left text-xs text-zinc-500 font-normal">Surplus / Deficit</th>
-                <th className="px-4 py-3 text-left text-xs text-zinc-500 font-normal">Fans</th>
-                <th className="px-4 py-3 text-left text-xs text-zinc-500 font-normal">Days behind</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {members.map((m, i) => {
-                const val = Number(m.deficit_surplus)
-                return (
-                  <tr key={m.member_id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="px-4 py-3 text-xs text-zinc-600">{i + 1}</td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/dashboard/members/${m.member_id}`}
-                        className="text-xs font-medium text-zinc-200 hover:text-white transition-colors"
-                      >
-                        {m.trainer_name}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs font-medium ${val >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        {val >= 0 ? '+' : ''}{formatFans(val)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-zinc-400">{formatFans(Number(m.cumulative_fans))}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-xs ${Number(m.days_behind) > 0 ? 'text-amber-400' : 'text-zinc-600'}`}>
-                        {m.days_behind}d
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-              {members.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-xs text-zinc-600 text-center">
-                    No active members with quota history
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-          </div>
-        </div>
-
-        {/* Side panels */}
-        <div className="md:col-span-2 space-y-3">
-          {/* Bomb stats */}
-          <div className="bg-[#0d0d14] border border-white/5 rounded-lg p-5">
-            <p className="text-sm font-medium text-white mb-4">Bomb statistics</p>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-3">
-              {[
-                { label: 'Active', value: bombStats.active_bombs, color: Number(bombStats.active_bombs) > 0 ? 'text-red-400' : 'text-white' },
-                { label: 'Resolved', value: bombStats.resolved_bombs },
-                { label: 'Members affected', value: bombStats.members_bombed_ever },
-                { label: 'Avg resolution', value: bombStats.avg_duration ? `${bombStats.avg_duration}d` : '—' },
-              ].map(({ label, value, color }) => (
-                <div key={label}>
-                  <p className="text-[10px] text-zinc-600 mb-0.5">{label}</p>
-                  <p className={`text-lg font-semibold ${color ?? 'text-white'}`}>{value}</p>
-                </div>
-              ))}
-            </div>
-            {Number(bombStats.active_bombs) > 0 && (
-              <Link
-                href={`/dashboard/bombs?clubId=${clubId}`}
-                className="mt-4 block text-xs text-violet-400 hover:text-violet-300 transition-colors"
-              >
-                View active bombs →
-              </Link>
-            )}
-          </div>
-
-          {/* Top performers */}
-          {topPerformers.length > 0 && (
-            <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-white/5">
-                <p className="text-sm font-medium text-white">Top performers</p>
-              </div>
-              <div className="divide-y divide-white/5">
-                {topPerformers.map((m, i) => (
-                  <div key={m.member_id} className="px-5 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-[10px] text-zinc-600 w-4 shrink-0">{i + 1}</span>
-                      <Link
-                        href={`/dashboard/members/${m.member_id}`}
-                        className="text-xs text-zinc-300 hover:text-white transition-colors truncate"
-                      >
-                        {m.trainer_name}
-                      </Link>
-                    </div>
-                    <span className="text-xs font-medium text-emerald-400 shrink-0 ml-2">
-                      +{formatFans(Number(m.deficit_surplus))}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+        >
+          <SplitMeter good={onTrack} bad={behind} className="mb-4" />
+          {compliance.length >= 2 ? (
+            <LineChart
+              labels={compliance.map(d => d.date)}
+              series={[{ key: 'pct', label: 'On track', values: compliancePoints, color: 'var(--uc-good)', area: true }]}
+              format="percent"
+              clamp={[0, 100]}
+              height={210}
+            />
+          ) : (
+            <EmptyState title="Not enough checks yet" body="The chart fills in once the month has a couple of daily checks." className="py-10" />
           )}
+        </Panel>
 
-          {/* Struggling members */}
-          {struggling.length > 0 && (
-            <div className="bg-[#0d0d14] border border-white/5 rounded-lg overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-white/5">
-                <p className="text-sm font-medium text-white">Needs attention</p>
-              </div>
-              <div className="divide-y divide-white/5">
+        <Panel
+          className="lg:col-span-2"
+          title="Club rank"
+          description={`${monthName ?? 'This month'}. Higher on the chart is better.`}
+          action={rankDelta !== null && rankDelta !== 0 && (
+            <Chip tone={rankDelta > 0 ? 'good' : 'warn'} className="num">
+              {rankDelta > 0 ? `Up ${rankDelta}` : `Down ${-rankDelta}`}
+            </Chip>
+          )}
+        >
+          {ranks.length >= 2 ? (
+            <LineChart
+              labels={ranks.map(r => r.date)}
+              series={[{ key: 'rank', label: 'Rank', values: ranks.map(r => Number(r.club_rank)), color: 'var(--uc-brand)' }]}
+              format="rank"
+              invert
+              height={226}
+            />
+          ) : (
+            <EmptyState title="Not enough rank data yet" body="Rank shows up here once the bot has recorded it a few times this month." className="py-10" />
+          )}
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
+        <Panel
+          className="lg:col-span-2"
+          title={monthName ? `Member standings, ${monthName}` : 'Member standings'}
+          description={`Fans and surplus for this month${current?.last ? ` as of ${formatDay(current.last)}` : ''}. Click a column to sort, or a row to open the member.`}
+          action={<Link href="/dashboard/quota" className="link text-[13px]">Earlier months</Link>}
+          flush
+        >
+          <StandingsTable rows={rows} />
+        </Panel>
+
+        <div className="space-y-4">
+          <Panel
+            title="Needs attention"
+            action={<Link href="/dashboard/reports" className="link text-[13px]">Daily report</Link>}
+            flush
+          >
+            {struggling.length ? (
+              <ul className="divide-y divide-line border-t border-line">
                 {struggling.map(m => (
-                  <div key={m.member_id} className="px-5 py-3 flex items-center justify-between">
+                  <li key={m.member_id}>
                     <Link
                       href={`/dashboard/members/${m.member_id}`}
-                      className="text-xs text-zinc-300 hover:text-white transition-colors truncate"
+                      className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface-2/60"
                     >
-                      {m.trainer_name}
+                      <Avatar name={m.trainer_name} size={26} />
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-fg-soft">{m.trainer_name}</span>
+                      {m.bomb_days !== null
+                        ? <Chip tone={m.bomb_days <= 1 ? 'bad' : 'warn'}>💣 {m.bomb_days}d</Chip>
+                        : m.days_behind > 0 && <span className="num text-xs text-fg-subtle">{m.days_behind}d behind</span>}
+                      <span className="num w-14 text-right text-[13px] font-medium text-warn">{formatFans(m.surplus)}</span>
                     </Link>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
-                      {Number(m.days_behind) > 0 && (
-                        <span className="text-[10px] text-zinc-600">{m.days_behind}d behind</span>
-                      )}
-                      <span className="text-xs font-medium text-amber-400">
-                        {formatFans(Number(m.deficit_surplus))}
-                      </span>
-                    </div>
-                  </div>
+                  </li>
                 ))}
+              </ul>
+            ) : (
+              <div className="flex items-center gap-3 border-t border-line px-5 py-4">
+                <span className="grid size-8 place-items-center rounded-lg bg-good/12 text-good">
+                  <Check size={16} strokeWidth={2} />
+                </span>
+                <p className="text-[13px] text-fg-muted">Nobody is behind quota right now.</p>
               </div>
-            </div>
+            )}
+          </Panel>
+
+          {topPerformers.length > 0 && (
+            <Panel title="Top performers" flush>
+              <ol className="divide-y divide-line border-t border-line">
+                {topPerformers.map((m, i) => (
+                  <li key={m.member_id}>
+                    <Link
+                      href={`/dashboard/members/${m.member_id}`}
+                      className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-surface-2/60"
+                    >
+                      <span
+                        className={`grid size-6 place-items-center rounded-md text-[11px] font-semibold ${
+                          i === 0 ? 'bg-brand/16 text-brand' : 'bg-surface-3 text-fg-muted'
+                        }`}
+                      >
+                        {i === 0 ? <Trophy size={13} strokeWidth={2} /> : i + 1}
+                      </span>
+                      <span className="min-w-0 flex-1 truncate text-[13px] text-fg-soft">{m.trainer_name}</span>
+                      <span className="num text-[13px] font-medium text-good">{formatDelta(m.surplus)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ol>
+            </Panel>
           )}
+
+          <Panel
+            title="Bombs"
+            action={activeBombs > 0 && (
+              <Link href="/dashboard/bombs" className="link inline-flex items-center gap-1 text-[13px]">
+                View active <ArrowRight size={13} strokeWidth={1.75} />
+              </Link>
+            )}
+          >
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+              {[
+                { label: 'Active', value: bombStats.active_bombs, tone: activeBombs > 0 ? 'text-bad' : undefined },
+                { label: 'Resolved', value: bombStats.resolved_bombs },
+                { label: 'Members affected', value: bombStats.members_bombed_ever },
+                { label: 'Average to resolve', value: bombStats.avg_duration ? `${bombStats.avg_duration} days` : '–' },
+              ].map(({ label, value, tone }) => (
+                <div key={label}>
+                  <dt className="text-xs text-fg-subtle">{label}</dt>
+                  <dd className={`num mt-0.5 font-display text-xl font-semibold ${tone ?? 'text-fg'}`}>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </Panel>
         </div>
       </div>
     </div>
   )
 }
 
-function ComplianceChart({ data }: { data: ComplianceDay[] }) {
-  const W = 600, H = 200
-  const pad = { top: 10, right: 8, bottom: 26, left: 38 }
-  const plotW = W - pad.left - pad.right
-  const plotH = H - pad.top - pad.bottom
-
-  const percents = data.map(d =>
-    Number(d.total) > 0 ? (Number(d.on_track) / Number(d.total)) * 100 : 0
-  )
-
-  // Auto-scale Y to actual data range with 5% padding, snapped to nearest 5
-  const rawMin = Math.min(...percents)
-  const rawMax = Math.max(...percents)
-  const yMin = Math.max(0, Math.floor((rawMin - 5) / 5) * 5)
-  const yMax = Math.min(100, Math.ceil((rawMax + 5) / 5) * 5)
-  const yRange = yMax - yMin || 1
-
-  const xOf = (i: number) => pad.left + (i / Math.max(data.length - 1, 1)) * plotW
-  const yOf = (pct: number) => pad.top + plotH - ((pct - yMin) / yRange) * plotH
-
-  const linePoints = percents.map((p, i) => `${xOf(i)},${yOf(p)}`).join(' ')
-  const areaPoints = `${pad.left},${pad.top + plotH} ${linePoints} ${xOf(data.length - 1)},${pad.top + plotH}`
-
-  // Generate ~4 Y ticks spaced evenly across the actual range
-  const tickStep = Math.ceil((yMax - yMin) / 4 / 5) * 5 || 5
-  const yTicks: number[] = []
-  for (let t = yMin; t <= yMax; t += tickStep) yTicks.push(t)
-  if (yTicks[yTicks.length - 1] !== yMax) yTicks.push(yMax)
-
-  const xStep = Math.max(1, Math.floor(data.length / 6))
-  const lastIdx = data.length - 1
-  const prevRegular = Math.floor(lastIdx / xStep) * xStep
-  const xLabelIdxs = data.map((_, i) => i).filter(i =>
-    i % xStep === 0 || (i === lastIdx && lastIdx !== prevRegular && (lastIdx - prevRegular) * 2 > xStep)
-  )
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
-      {yTicks.map(pct => (
-        <g key={pct}>
-          <line x1={pad.left} y1={yOf(pct)} x2={W - pad.right} y2={yOf(pct)} stroke="#ffffff08" strokeWidth="1" />
-          <text x={pad.left - 4} y={yOf(pct) + 4} textAnchor="end" fontSize="9" fill="#52525b">{pct}%</text>
-        </g>
-      ))}
-
-      <polygon points={areaPoints} fill="#10b98115" />
-      <polyline points={linePoints} fill="none" stroke="#10b981" strokeWidth="2" strokeLinejoin="round" />
-
-      {data.length > 0 && (
-        <circle cx={xOf(data.length - 1)} cy={yOf(percents[percents.length - 1])} r="3" fill="#10b981" />
-      )}
-
-      {xLabelIdxs.map(i => (
-        <text key={i} x={xOf(i)} y={H - 5} textAnchor="middle" fontSize="9" fill="#52525b">
-          {new Date(data[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </text>
-      ))}
-    </svg>
-  )
-}
-
-function RankChart({ data }: { data: RankDay[] }) {
-  const W = 380, H = 200
-  const pad = { top: 10, right: 8, bottom: 26, left: 36 }
-  const plotW = W - pad.left - pad.right
-  const plotH = H - pad.top - pad.bottom
-
-  const allRanks = data.map(d => Number(d.club_rank))
-  const sorted = [...allRanks].sort((a, b) => a - b)
+/** Drop rank spikes (missed scrapes report huge ranks) so the chart shows the real trend. */
+function cleanRanks(data: RankDay[]) {
+  const sorted = data.map(d => Number(d.club_rank)).sort((a, b) => a - b)
   const median = sorted[Math.floor(sorted.length / 2)] ?? 1
-  const filtered = data.filter(d => Number(d.club_rank) <= median * 5)
-  const ranks = filtered.map(d => Number(d.club_rank))
-  const minR = Math.min(...ranks)
-  const maxR = Math.max(...ranks)
-  const range = maxR - minR || 1
-
-  const xOf = (i: number) => pad.left + (i / Math.max(filtered.length - 1, 1)) * plotW
-  // lower rank number = better = higher on chart (lower y)
-  const yOf = (r: number) => pad.top + ((r - minR) / range) * plotH
-
-  const points = ranks.map((r, i) => `${xOf(i)},${yOf(r)}`).join(' ')
-
-  const xStep = Math.max(1, Math.floor(filtered.length / 4))
-  const lastIdx = filtered.length - 1
-  const prevRegular = Math.floor(lastIdx / xStep) * xStep
-  const xLabelIdxs = filtered.map((_, i) => i).filter(i =>
-    i % xStep === 0 || (i === lastIdx && lastIdx !== prevRegular && (lastIdx - prevRegular) * 2 > xStep)
-  )
-
-  const yTicks = minR === maxR ? [minR] : [minR, Math.round((minR + maxR) / 2), maxR]
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: H }}>
-      {yTicks.map(r => (
-        <g key={r}>
-          <line x1={pad.left} y1={yOf(r)} x2={W - pad.right} y2={yOf(r)} stroke="#ffffff08" strokeWidth="1" />
-          <text x={pad.left - 4} y={yOf(r) + 4} textAnchor="end" fontSize="9" fill="#52525b">#{r}</text>
-        </g>
-      ))}
-
-      <polyline points={points} fill="none" stroke="#6366f1" strokeWidth="2" strokeLinejoin="round" />
-
-      <circle
-        cx={xOf(filtered.length - 1)}
-        cy={yOf(ranks[ranks.length - 1])}
-        r="3" fill="#6366f1"
-      />
-
-      {xLabelIdxs.map(i => (
-        <text key={i} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize="9" fill="#52525b">
-          {new Date(filtered[i].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </text>
-      ))}
-    </svg>
-  )
+  return data.filter(d => Number(d.club_rank) <= median * 5)
 }
 
-function formatFans(n: number) {
-  const abs = Math.abs(n), sign = n < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1)}M`
-  if (abs >= 1_000) return `${sign}${(abs / 1_000).toFixed(0)}K`
-  return String(n)
+function periodWord(p: string) {
+  return p === 'weekly' ? 'week' : p === 'biweekly' || p === 'bi-weekly' ? '2 weeks' : 'day'
 }

@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { query, queryOne } from '@/lib/db'
+import { PageHeader } from '@/components/dash/ui'
 
 const OWNER_ID = '139769063948681217'
 
@@ -111,19 +112,16 @@ export default async function ApiUsagePage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">API Usage</h1>
-        <p className="text-zinc-500 text-sm mt-1">
-          Owner-only. Outbound requests to uma.moe &amp; gametora.
-        </p>
+        <PageHeader title="API usage" description="Owner only. Outbound requests to uma.moe and gametora." />
       </div>
 
       {/* KPI grid */}
       <section>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {kpis.map(({ label, value, warn }) => (
-            <div key={label} className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-4">
-              <p className="text-xs text-zinc-500 mb-1">{label}</p>
-              <p className={`text-2xl font-bold ${warn ? 'text-amber-400' : 'text-white'}`}>
+            <div key={label} className="rounded-xl border border-line bg-surface-2/70 px-4 py-4">
+              <p className="text-xs text-fg-muted mb-1">{label}</p>
+              <p className={`text-2xl font-bold ${warn ? 'text-warn' : 'text-fg'}`}>
                 {typeof value === 'number' ? value.toLocaleString() : value}
               </p>
             </div>
@@ -132,22 +130,22 @@ export default async function ApiUsagePage() {
       </section>
 
       {/* Rate-limit headroom */}
-      <section className="rounded-xl border border-white/5 bg-white/[0.03] px-5 py-4">
+      <section className="rounded-xl border border-line bg-surface-2/70 px-5 py-4">
         <div className="flex items-baseline justify-between mb-2">
-          <h2 className="text-sm font-semibold text-zinc-300">uma.moe rate-limit headroom</h2>
-          <span className="text-xs text-zinc-500">
+          <h2 className="text-sm font-semibold text-fg-soft">uma.moe rate-limit headroom</h2>
+          <span className="text-xs text-fg-muted">
             peak {peakPerMin}/min in last 24h · limit {RATE_PER_MIN}/min
           </span>
         </div>
-        <div className="h-2.5 rounded-full bg-white/5 overflow-hidden">
+        <div className="h-2.5 rounded-full bg-surface-3 overflow-hidden">
           <div
             className={`h-full rounded-full ${
-              peakPct >= 90 ? 'bg-red-500' : peakPct >= 70 ? 'bg-amber-400' : 'bg-emerald-500'
+              peakPct >= 90 ? 'bg-bad' : peakPct >= 70 ? 'bg-warn' : 'bg-good'
             }`}
             style={{ width: `${Math.max(2, peakPct)}%` }}
           />
         </div>
-        <p className="text-xs text-zinc-500 mt-2">
+        <p className="text-xs text-fg-muted mt-2">
           {peakPct >= 90
             ? 'Close to the limit — consider spacing out scrapes.'
             : peakPct >= 70
@@ -158,47 +156,47 @@ export default async function ApiUsagePage() {
 
       {/* Daily volume chart */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
           Calls per day (30d)
         </h2>
-        <div className="rounded-xl border border-white/5 bg-white/[0.03] px-4 py-4">
+        <div className="rounded-xl border border-line bg-surface-2/70 px-4 py-4">
           {daily.length > 0 ? (
             <DailyBars data={daily} />
           ) : (
-            <p className="text-sm text-zinc-500 py-8 text-center">No API calls recorded yet.</p>
+            <p className="text-sm text-fg-muted py-8 text-center">No API calls recorded yet.</p>
           )}
         </div>
       </section>
 
       {/* Endpoint breakdown */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
           By endpoint (7d)
         </h2>
-        <div className="rounded-xl border border-white/5 overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.03]">
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Provider</th>
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Endpoint</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Calls</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Errors</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Avg ms</th>
+              <tr className="border-b border-line bg-surface-2/70">
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Provider</th>
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Endpoint</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Calls</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Errors</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Avg ms</th>
               </tr>
             </thead>
             <tbody>
               {endpoints.length > 0 ? endpoints.map((e, i) => (
-                <tr key={i} className="border-b border-white/5 last:border-0">
-                  <td className="px-4 py-3 text-zinc-300">{e.provider}</td>
-                  <td className="px-4 py-3 text-zinc-400 font-mono text-xs">{e.endpoint}</td>
-                  <td className="px-4 py-3 text-right text-zinc-300">{Number(e.calls).toLocaleString()}</td>
-                  <td className={`px-4 py-3 text-right ${Number(e.errors) > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                <tr key={i} className="border-b border-line last:border-0">
+                  <td className="px-4 py-3 text-fg-soft">{e.provider}</td>
+                  <td className="px-4 py-3 text-fg-muted font-mono text-xs">{e.endpoint}</td>
+                  <td className="px-4 py-3 text-right text-fg-soft">{Number(e.calls).toLocaleString()}</td>
+                  <td className={`px-4 py-3 text-right ${Number(e.errors) > 0 ? 'text-warn' : 'text-fg-muted'}`}>
                     {Number(e.errors).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-right text-zinc-400">{e.avg_ms != null ? Number(e.avg_ms).toLocaleString() : '—'}</td>
+                  <td className="px-4 py-3 text-right text-fg-muted">{e.avg_ms != null ? Number(e.avg_ms).toLocaleString() : '—'}</td>
                 </tr>
               )) : (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">No data in the last 7 days.</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-fg-muted">No data in the last 7 days.</td></tr>
               )}
             </tbody>
           </table>
@@ -207,35 +205,35 @@ export default async function ApiUsagePage() {
 
       {/* Recent errors */}
       <section>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
           Recent failures
         </h2>
-        <div className="rounded-xl border border-white/5 overflow-hidden">
+        <div className="rounded-xl border border-line overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5 bg-white/[0.03]">
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">When</th>
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Provider</th>
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Endpoint</th>
-                <th className="text-right px-4 py-3 text-zinc-400 font-medium">Status</th>
-                <th className="text-left px-4 py-3 text-zinc-400 font-medium">Context</th>
+              <tr className="border-b border-line bg-surface-2/70">
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">When</th>
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Provider</th>
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Endpoint</th>
+                <th className="text-right px-4 py-3 text-fg-muted font-medium">Status</th>
+                <th className="text-left px-4 py-3 text-fg-muted font-medium">Context</th>
               </tr>
             </thead>
             <tbody>
               {errors.length > 0 ? errors.map((e, i) => (
-                <tr key={i} className="border-b border-white/5 last:border-0">
-                  <td className="px-4 py-3 text-zinc-400 whitespace-nowrap">{e.created_at}</td>
-                  <td className="px-4 py-3 text-zinc-300">{e.provider}</td>
-                  <td className="px-4 py-3 text-zinc-400 font-mono text-xs">{e.endpoint}</td>
+                <tr key={i} className="border-b border-line last:border-0">
+                  <td className="px-4 py-3 text-fg-muted whitespace-nowrap">{e.created_at}</td>
+                  <td className="px-4 py-3 text-fg-soft">{e.provider}</td>
+                  <td className="px-4 py-3 text-fg-muted font-mono text-xs">{e.endpoint}</td>
                   <td className="px-4 py-3 text-right">
-                    <span className="text-red-400 font-mono text-xs">{e.status_code ?? 'net'}</span>
+                    <span className="text-bad font-mono text-xs">{e.status_code ?? 'net'}</span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-500 font-mono text-xs truncate max-w-[200px]" title={e.context ?? ''}>
+                  <td className="px-4 py-3 text-fg-muted font-mono text-xs truncate max-w-[200px]" title={e.context ?? ''}>
                     {e.context ?? '—'}
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-zinc-500">No failures recorded. 🎉</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-fg-muted">No failures recorded. 🎉</td></tr>
               )}
             </tbody>
           </table>

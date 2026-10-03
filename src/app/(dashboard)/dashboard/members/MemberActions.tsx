@@ -2,35 +2,49 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { UserPlus } from 'lucide-react'
+import Modal, { Field } from '@/components/dash/Modal'
 
 export function MemberToggle({
   memberId,
   isActive,
+  name,
 }: {
   memberId: string
   isActive: boolean
+  name?: string
 }) {
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
   const router = useRouter()
 
   async function toggle() {
     setLoading(true)
-    await fetch(`/api/members/${memberId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_active: !isActive, manually_deactivated: isActive }),
-    })
-    router.refresh()
-    setLoading(false)
+    setError(false)
+    try {
+      const res = await fetch(`/api/members/${memberId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ is_active: !isActive, manually_deactivated: isActive }),
+      })
+      if (!res.ok) throw new Error()
+      router.refresh()
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <button
       onClick={toggle}
       disabled={loading}
-      className="text-xs text-zinc-500 hover:text-white disabled:opacity-40 transition-colors px-2 py-1 rounded hover:bg-white/5"
+      aria-label={`${isActive ? 'Deactivate' : 'Activate'}${name ? ` ${name}` : ''}`}
+      title={error ? 'Could not save. Try again.' : undefined}
+      className={`btn btn-xs ${error ? 'text-bad' : isActive ? 'btn-danger-ghost' : 'btn-ghost text-good'}`}
     >
-      {loading ? '…' : isActive ? 'Deactivate' : 'Activate'}
+      {loading ? 'Saving…' : error ? 'Retry' : isActive ? 'Deactivate' : 'Activate'}
     </button>
   )
 }
@@ -71,80 +85,72 @@ export function AddMemberButton({ clubs }: { clubs: { club_id: string; club_name
 
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="text-xs text-white bg-violet-600 hover:bg-violet-500 px-3 py-1.5 rounded transition-colors"
-      >
+      <button onClick={() => setOpen(true)} className="btn btn-primary">
+        <UserPlus size={16} strokeWidth={1.75} />
         Add member
       </button>
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="bg-[#0d0d14] border border-white/8 rounded-lg w-full max-w-sm mx-4 overflow-hidden">
-            <div className="px-5 py-4 border-b border-white/5 flex items-center justify-between">
-              <p className="text-sm font-medium text-white">Add member</p>
-              <button onClick={() => setOpen(false)} className="text-zinc-500 hover:text-white text-xs">✕</button>
-            </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Add member"
+        description="For trainers the daily check hasn't picked up yet."
+        footer={
+          <>
+            <button type="button" onClick={() => setOpen(false)} className="btn btn-ghost">Cancel</button>
+            <button type="submit" form="add-member-form" disabled={saving} className="btn btn-primary">
+              {saving ? 'Adding…' : 'Add member'}
+            </button>
+          </>
+        }
+      >
+        <form id="add-member-form" onSubmit={submit} className="space-y-4">
+          <Field label="Trainer name" htmlFor="am-name">
+            <input
+              id="am-name"
+              required
+              value={form.trainer_name}
+              onChange={e => setForm(f => ({ ...f, trainer_name: e.target.value }))}
+              placeholder="e.g. Gwiyomi"
+              className="field"
+            />
+          </Field>
+          <Field label="Trainer ID" htmlFor="am-id" hint="The ID shown on the trainer's in-game profile.">
+            <input
+              id="am-id"
+              required
+              value={form.trainer_id}
+              onChange={e => setForm(f => ({ ...f, trainer_id: e.target.value }))}
+              className="field num"
+            />
+          </Field>
+          {clubs.length > 1 && (
+            <Field label="Club" htmlFor="am-club">
+              <select
+                id="am-club"
+                value={form.club_id}
+                onChange={e => setForm(f => ({ ...f, club_id: e.target.value }))}
+                className="field"
+              >
+                {clubs.map(c => (
+                  <option key={c.club_id} value={c.club_id}>{c.club_name}</option>
+                ))}
+              </select>
+            </Field>
+          )}
+          <Field label="Join date" htmlFor="am-join" hint="Quota is counted from this day.">
+            <input
+              id="am-join"
+              type="date"
+              value={form.join_date}
+              onChange={e => setForm(f => ({ ...f, join_date: e.target.value }))}
+              className="field num"
+            />
+          </Field>
 
-            <form onSubmit={submit} className="px-5 py-5 space-y-4">
-              <div>
-                <label className="text-xs text-zinc-500 block mb-1.5">Trainer name</label>
-                <input
-                  required
-                  value={form.trainer_name}
-                  onChange={e => setForm(f => ({ ...f, trainer_name: e.target.value }))}
-                  placeholder="e.g. Gwiyomi"
-                  className="w-full bg-[#111118] border border-white/8 rounded px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-colors placeholder:text-zinc-700"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 block mb-1.5">Trainer ID</label>
-                <input
-                  required
-                  value={form.trainer_id}
-                  onChange={e => setForm(f => ({ ...f, trainer_id: e.target.value }))}
-                  placeholder="Game trainer ID"
-                  className="w-full bg-[#111118] border border-white/8 rounded px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-colors placeholder:text-zinc-700"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 block mb-1.5">Club</label>
-                <select
-                  value={form.club_id}
-                  onChange={e => setForm(f => ({ ...f, club_id: e.target.value }))}
-                  className="w-full bg-[#111118] border border-white/8 rounded px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-colors"
-                >
-                  {clubs.map(c => (
-                    <option key={c.club_id} value={c.club_id}>{c.club_name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-zinc-500 block mb-1.5">Join date</label>
-                <input
-                  type="date"
-                  value={form.join_date}
-                  onChange={e => setForm(f => ({ ...f, join_date: e.target.value }))}
-                  className="w-full bg-[#111118] border border-white/8 rounded px-3 py-2 text-sm text-white outline-none focus:border-violet-500/50 transition-colors"
-                />
-              </div>
-
-              {error && <p className="text-xs text-red-400">{error}</p>}
-
-              <div className="flex items-center justify-end gap-3 pt-1">
-                <button type="button" onClick={() => setOpen(false)}
-                  className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
-                  Cancel
-                </button>
-                <button type="submit" disabled={saving}
-                  className="text-xs text-white bg-violet-600 hover:bg-violet-500 disabled:opacity-50 px-4 py-2 rounded transition-colors">
-                  {saving ? 'Adding…' : 'Add member'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+          {error && <p className="rounded-[10px] bg-bad/10 px-3 py-2 text-[13px] text-bad" role="alert">{error}</p>}
+        </form>
+      </Modal>
     </>
   )
 }
