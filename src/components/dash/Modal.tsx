@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -40,7 +41,12 @@ export default function Modal({
     }
   }, [open, onClose])
 
-  return (
+  // Rendered on <body>: page sections animate in with transform/opacity, which traps a
+  // fixed overlay inside its section and lets later sections paint over it.
+  const isClient = useSyncExternalStore(noopSubscribe, () => true, () => false)
+  if (!isClient) return null
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
@@ -81,9 +87,12 @@ export default function Modal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }
+
+const noopSubscribe = () => () => {}
 
 export function Field({
   label,

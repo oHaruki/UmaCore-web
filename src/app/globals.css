@@ -242,10 +242,12 @@
   .table-ui td { @apply px-4 py-3 align-middle; }
 }
 
-/* Staggered page entry. Each child sets --i for its delay. */
+/* Staggered page entry. Each child sets --i for its delay.
+   Fill is backwards only: a fill that holds the end frame keeps every section a
+   stacking context, so popovers from one section get painted over by the next. */
 @media (prefers-reduced-motion: no-preference) {
   .rise > * {
-    animation: rise 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation: rise 520ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
     animation-delay: calc(var(--i, 0) * 55ms);
   }
   .rise > *:nth-child(1) { --i: 0; }
