@@ -10,6 +10,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Discord({
       clientId: process.env.DISCORD_CLIENT_ID!,
       clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+      // Discord sends an `iss` back on the callback and Auth.js checks it against
+      // this; without it the check runs against a placeholder and every login fails.
+      issuer: 'https://discord.com',
       // guilds.members.read lets us read the signed-in user's roles per guild,
       // which is how club-editor permissions are resolved.
       authorization: { params: { scope: 'identify email guilds guilds.members.read' } },
