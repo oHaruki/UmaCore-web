@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
+import { isDayKey } from '@/lib/biweek'
 
 export async function PATCH(
   req: NextRequest,
@@ -28,7 +29,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
   }
 
-  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled', 'live_board_channel_id', 'transfer_channel_id']
+  if ('period_anchor_date' in body && body.period_anchor_date !== null && !isDayKey(body.period_anchor_date)) {
+    return NextResponse.json({ error: 'period_anchor_date must be a YYYY-MM-DD date, or null for calendar biweeks' }, { status: 400 })
+  }
+
+  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled', 'live_board_channel_id', 'transfer_channel_id', 'period_anchor_date']
   const sets: string[] = []
   const vals: unknown[] = []
   let i = 1

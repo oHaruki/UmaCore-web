@@ -5,6 +5,8 @@ import { Switch } from '@/components/dash/Modal'
 import { useRouter } from 'next/navigation'
 import type { Club, QuotaReq } from './page'
 import ChannelNames from './ChannelNames'
+import { biweeksFrom, isDayKey } from '@/lib/biweek'
+import { formatDay } from '@/lib/format'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -24,6 +26,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
   const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
   const [liveBoardChannel, setLiveBoardChannel]     = useState(club.live_board_channel_id)
   const [transferChannel, setTransferChannel]       = useState(club.transfer_channel_id)
+  const [quotaPeriod, setQuotaPeriod]               = useState(club.quota_period)
   const [status, setStatus]               = useState<Record<string, SaveStatus>>({})
   const [copied, setCopied]               = useState(false)
 
@@ -104,14 +107,14 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <SelectField
             label="Period"
-            value={club.quota_period}
+            value={quotaPeriod}
             options={[
               { value: 'daily',    label: 'Daily' },
               { value: 'weekly',   label: 'Weekly' },
               { value: 'biweekly', label: 'Bi-weekly' },
             ]}
             savedStatus={fs('quota_period')}
-            onChange={v => save({ quota_period: v }, 'quota_period')}
+            onChange={v => { setQuotaPeriod(v); save({ quota_period: v }, 'quota_period') }}
           />
           <NumberField
             label="Default quota"
@@ -134,6 +137,16 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             hint="Recommended: 18:00 — uma.moe refreshes data around this time"
           />
         </div>
+        {quotaPeriod === 'biweekly' && (
+          <div className="mt-4 pt-4 border-t border-line">
+            <BiweekCycleField
+              anchor={club.period_anchor_date}
+              referenceDay={club.latest_data_date}
+              savedStatus={fs('period_anchor_date')}
+              onSave={v => save({ period_anchor_date: v }, 'period_anchor_date')}
+            />
+          </div>
+        )}
       </Section>
 
       {/* Reports */}
@@ -746,6 +759,75 @@ function TimeField({ label, value, onSave, savedStatus, hint }: {
         className="field"
       />
       {hint && <p className="text-[11px] text-fg-subtle mt-1">{hint}</p>}
+    </div>
+  )
+}
+
+// ── Biweek cycle (auto-save on blur) ───────────────────────────
+function BiweekCycleField({ anchor, referenceDay, onSave, savedStatus }: {
+  anchor: string | null; referenceDay: string
+  onSave: (v: string | null) => void
+  savedStatus: SaveStatus
+}) {
+  const [local, setLocal] = useState(anchor ?? '')
+  const [saved, setSaved] = useState(anchor ?? '')
+  const preview = isDayKey(local) ? biweeksFrom(local, referenceDay, 3) : null
+
+  const commit = (v: string) => {
+    if (v === saved || (v !== '' && !isDayKey(v))) return
+    setSaved(v)
+    onSave(v || null)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1.5">
+        <label htmlFor="biweek-start" className="text-[13px] font-medium text-fg-soft">Biweek cycle</label>
+        <SaveIndicator status={savedStatus} />
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <input
+          id="biweek-start"
+          type="date"
+          value={local}
+          onChange={e => setLocal(e.target.value)}
+          onBlur={() => commit(local)}
+          className="field sm:w-56"
+        />
+        {saved && (
+          <button
+            type="button"
+            onClick={() => { setLocal(''); commit('') }}
+            className="text-xs text-fg-muted hover:text-fg transition-colors font-medium"
+          >
+            Use calendar biweeks
+          </button>
+        )}
+      </div>
+      {preview ? (
+        <>
+          <ol className="mt-3 flex flex-wrap gap-2">
+            {preview.map((p, i) => (
+              <li
+                key={p.start}
+                className={`num rounded-[10px] border px-2.5 py-1 text-xs ${i === 0 ? 'border-brand/40 text-fg' : 'border-line text-fg-muted'}`}
+              >
+                {formatDay(p.start)} – {formatDay(p.end)}
+                {i === 0 && <span className="ml-1.5 text-brand">now</span>}
+              </li>
+            ))}
+          </ol>
+          <p className="text-[11px] text-fg-subtle mt-2">
+            Each biweek runs 14 days and counts only the fans earned inside it, even across a month end.
+            Dates match the daily report.
+          </p>
+        </>
+      ) : (
+        <p className="text-[11px] text-fg-subtle mt-2">
+          Biweeks follow the calendar: 1st–14th, 15th–28th, 29th–end. Pick a tally day to run
+          your own 14-day cycle from it instead.
+        </p>
+      )}
     </div>
   )
 }

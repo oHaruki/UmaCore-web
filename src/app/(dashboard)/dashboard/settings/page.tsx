@@ -29,6 +29,9 @@ export type Club = {
   image_report_enabled: boolean
   live_board_channel_id: string | null
   transfer_channel_id: string | null
+  period_anchor_date: string | null
+  /** The club's newest daily check, or today before the first one. */
+  latest_data_date: string
 }
 
 export type QuotaReq = {
@@ -56,7 +59,10 @@ export default async function SettingsPage() {
                monthly_info_channel_id::text,
                scrape_url, circle_id, guild_id::text,
                public_enabled, public_slug, image_report_enabled,
-               live_board_channel_id::text, transfer_channel_id::text
+               live_board_channel_id::text, transfer_channel_id::text,
+               period_anchor_date::text,
+               COALESCE((SELECT MAX(date) FROM quota_history WHERE club_id = clubs.club_id),
+                        CURRENT_DATE)::text AS latest_data_date
         FROM clubs WHERE club_id = $1
       `, [active.club_id]).catch(() => [])
     : []
