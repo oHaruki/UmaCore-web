@@ -1,0 +1,11 @@
+# Deploy / update: git pull && docker compose up -d --build
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    # Host network: reaches Postgres on localhost and the bot API on 127.0.0.1:7890.
+    network_mode: host
+    environment:
+      PORT: "3000"
+    volumes:
+      - ./.env.local:/app/.env.local:ro

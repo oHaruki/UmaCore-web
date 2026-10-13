@@ -105,7 +105,15 @@ The easiest way to deploy is Vercel — it handles Next.js natively.
 
 > Note: `BOT_API_URL` points to `127.0.0.1` by default, so the bot and web app need to run on the same host unless you expose the bot API differently.
 
-### Self-hosted
+### Self-hosted (Docker)
+
+```bash
+docker compose up -d --build     # same command after every git pull
+```
+
+Runs on `127.0.0.1:3000` with host networking, next to the bot; `.env.local` is mounted at runtime.
+
+### Self-hosted (Node)
 
 ```bash
 npm run build
