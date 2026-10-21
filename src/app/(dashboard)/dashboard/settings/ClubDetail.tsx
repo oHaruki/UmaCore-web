@@ -24,6 +24,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
   const [bombsEnabled, setBombsEnabled]             = useState(club.bombs_enabled)
   const [publicEnabled, setPublicEnabled]           = useState(club.public_enabled)
   const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
+  const [reportDailyGain, setReportDailyGain]       = useState(club.report_daily_gain)
   const [liveBoardChannel, setLiveBoardChannel]     = useState(club.live_board_channel_id)
   const [transferChannel, setTransferChannel]       = useState(club.transfer_channel_id)
   const [quotaPeriod, setQuotaPeriod]               = useState(club.quota_period)
@@ -151,20 +152,37 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
 
       {/* Reports */}
       <Section title="Reports">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-fg-soft">Image report</p>
-            <p className="text-xs text-fg-subtle mt-0.5">
-              Post a visual PNG chart instead of the default text embeds for daily quota reports
-            </p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-fg-soft">Image report</p>
+              <p className="text-xs text-fg-subtle mt-0.5">
+                Post a visual PNG chart instead of the default text embeds for daily quota reports
+              </p>
+            </div>
+            <Toggle
+              on={imageReportEnabled}
+              label={imageReportEnabled ? 'Enabled' : 'Disabled'}
+              saving={fs('image_report_enabled') === 'saving'}
+              onChange={v => { setImageReportEnabled(v); save({ image_report_enabled: v }, 'image_report_enabled') }}
+              savedStatus={fs('image_report_enabled')}
+            />
           </div>
-          <Toggle
-            on={imageReportEnabled}
-            label={imageReportEnabled ? 'Enabled' : 'Disabled'}
-            saving={fs('image_report_enabled') === 'saving'}
-            onChange={v => { setImageReportEnabled(v); save({ image_report_enabled: v }, 'image_report_enabled') }}
-            savedStatus={fs('image_report_enabled')}
-          />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-fg-soft">Show daily gains</p>
+              <p className="text-xs text-fg-subtle mt-0.5">
+                List the fans each member gained that day instead of their total surplus
+              </p>
+            </div>
+            <Toggle
+              on={reportDailyGain}
+              label={reportDailyGain ? 'Enabled' : 'Disabled'}
+              saving={fs('report_daily_gain') === 'saving'}
+              onChange={v => { setReportDailyGain(v); save({ report_daily_gain: v }, 'report_daily_gain') }}
+              savedStatus={fs('report_daily_gain')}
+            />
+          </div>
         </div>
       </Section>
 

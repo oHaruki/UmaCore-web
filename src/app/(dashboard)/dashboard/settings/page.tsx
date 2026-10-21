@@ -27,6 +27,7 @@ export type Club = {
   public_enabled: boolean
   public_slug: string | null
   image_report_enabled: boolean
+  report_daily_gain: boolean
   live_board_channel_id: string | null
   transfer_channel_id: string | null
   period_anchor_date: string | null
@@ -58,7 +59,7 @@ export default async function SettingsPage() {
                report_channel_id::text, alert_channel_id::text,
                monthly_info_channel_id::text,
                scrape_url, circle_id, guild_id::text,
-               public_enabled, public_slug, image_report_enabled,
+               public_enabled, public_slug, image_report_enabled, report_daily_gain,
                live_board_channel_id::text, transfer_channel_id::text,
                period_anchor_date::text,
                COALESCE((SELECT MAX(date) FROM quota_history WHERE club_id = clubs.club_id),
