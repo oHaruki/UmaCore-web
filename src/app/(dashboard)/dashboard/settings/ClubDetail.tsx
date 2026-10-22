@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Link from 'next/link'
 import { Switch } from '@/components/dash/Modal'
 import { useRouter } from 'next/navigation'
 import type { Club, QuotaReq } from './page'
@@ -24,7 +25,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
   const [bombsEnabled, setBombsEnabled]             = useState(club.bombs_enabled)
   const [publicEnabled, setPublicEnabled]           = useState(club.public_enabled)
   const [imageReportEnabled, setImageReportEnabled] = useState(club.image_report_enabled)
-  const [reportDailyGain, setReportDailyGain]       = useState(club.report_daily_gain)
+  const [daysBehindMode, setDaysBehindMode]         = useState(club.days_behind_mode)
   const [liveBoardChannel, setLiveBoardChannel]     = useState(club.live_board_channel_id)
   const [transferChannel, setTransferChannel]       = useState(club.transfer_channel_id)
   const [quotaPeriod, setQuotaPeriod]               = useState(club.quota_period)
@@ -118,9 +119,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             onChange={v => { setQuotaPeriod(v); save({ quota_period: v }, 'quota_period') }}
           />
           <NumberField
-            label="Default quota"
+            label={`Default quota per ${PERIOD_LABEL[quotaPeriod] ?? 'day'}`}
             value={Number(club.daily_quota)}
-            hint="Falls back to this only when no dated change below applies — set the live quota with /quota or in Quota history."
+            hint="Falls back to this only when no dated change below applies — set the live quota with /quota or in Quota changes below."
             savedStatus={fs('daily_quota')}
             onSave={v => save({ daily_quota: v }, 'daily_quota')}
           />
@@ -168,20 +169,17 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
               savedStatus={fs('image_report_enabled')}
             />
           </div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-fg-soft">Show daily gains</p>
+              <p className="text-sm text-fg-soft">Embed style</p>
               <p className="text-xs text-fg-subtle mt-0.5">
-                List the fans each member gained that day instead of their total surplus
+                What each member line shows (like daily gains instead of the surplus), the order,
+                number format, titles and colours of the report and live board
               </p>
             </div>
-            <Toggle
-              on={reportDailyGain}
-              label={reportDailyGain ? 'Enabled' : 'Disabled'}
-              saving={fs('report_daily_gain') === 'saving'}
-              onChange={v => { setReportDailyGain(v); save({ report_daily_gain: v }, 'report_daily_gain') }}
-              savedStatus={fs('report_daily_gain')}
-            />
+            <Link href="/dashboard/embeds" className="btn btn-secondary btn-sm shrink-0">
+              Open editor
+            </Link>
           </div>
         </div>
       </Section>
@@ -259,13 +257,32 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             />
           </div>
 
+          <div>
+            <SelectField
+              label="Count days behind as"
+              value={daysBehindMode}
+              options={[
+                { value: 'streak', label: 'Days in a row under quota' },
+                { value: 'quota',  label: 'Days of quota missing (deficit ÷ daily quota)' },
+              ]}
+              savedStatus={fs('days_behind_mode')}
+              onChange={v => { setDaysBehindMode(v); save({ days_behind_mode: v }, 'days_behind_mode') }}
+            />
+            <p className="text-[11px] text-fg-subtle mt-1">
+              The report, deficit DMs and the bomb trigger all use this count. 45M behind at 8M a
+              day is 6 days of quota, however long it has lasted.
+            </p>
+          </div>
+
           <div className={`grid grid-cols-2 gap-4 transition-opacity duration-200 ${!bombsEnabled ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             <NumberField
               label="Trigger — days behind"
               value={club.bomb_trigger_days}
               savedStatus={fs('bomb_trigger_days')}
               onSave={v => save({ bomb_trigger_days: v }, 'bomb_trigger_days')}
-              hint="Consecutive days behind quota before bomb activates"
+              hint={daysBehindMode === 'quota'
+                ? 'Days of quota behind before a bomb activates'
+                : 'Consecutive days behind quota before a bomb activates'}
             />
             <NumberField
               label="Countdown — days to recover"
@@ -348,13 +365,21 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
       </Section>
 
       {/* Quota requirement history */}
-      <QuotaRequirementsManager clubId={club.club_id} initialHistory={quotaHistory} />
+      <QuotaRequirementsManager clubId={club.club_id} initialHistory={quotaHistory} quotaPeriod={quotaPeriod} />
     </div>
   )
 }
 
 // ── Quota requirements manager ─────────────────────────────────
-function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; initialHistory: QuotaReq[] }) {
+// A quota is stored per period, so a biweekly club's quota covers 2 weeks.
+const PERIOD_LABEL: Record<string, string> = { daily: 'day', weekly: 'week', biweekly: '2 weeks' }
+const PERIOD_DAYS: Record<string, number> = { daily: 1, weekly: 7, biweekly: 14 }
+
+function QuotaRequirementsManager({ clubId, initialHistory, quotaPeriod }: {
+  clubId: string; initialHistory: QuotaReq[]; quotaPeriod: string
+}) {
+  const per = PERIOD_LABEL[quotaPeriod] ?? 'day'
+  const periodDays = PERIOD_DAYS[quotaPeriod] ?? 1
   const router = useRouter()
   const [history, setHistory] = useState<QuotaReq[]>(initialHistory)
   const [date, setDate] = useState('')
@@ -489,7 +514,7 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
                 <p className="text-[11px] font-semibold text-fg leading-tight">
                   {formatFans(Number(q.daily_quota))}
                 </p>
-                <p className="text-[10px] text-fg-muted leading-tight">{q.set_by ?? `Apr ${day}`}</p>
+                <p className="text-[10px] text-fg-muted leading-tight">{q.set_by ?? `${now.toLocaleString('default', { month: 'short' })} ${day}`}</p>
               </div>
 
               {/* Delete button — appears on hover */}
@@ -519,16 +544,19 @@ function QuotaRequirementsManager({ clubId, initialHistory }: { clubId: string; 
         </div>
         <div className="flex-1 min-w-0">
           <label className="text-xs text-fg-muted block mb-1.5">
-            Daily quota
+            Quota per {per}
             {!isNaN(parsedAmount) && parsedAmount > 0 && (
-              <span className="ml-2 text-fg-subtle">{formatFans(parsedAmount)}</span>
+              <span className="ml-2 text-fg-subtle">
+                {formatFans(parsedAmount)}
+                {periodDays > 1 && ` (≈ ${formatFans(Math.round(parsedAmount / periodDays))} a day)`}
+              </span>
             )}
           </label>
           <input
             type="number"
             value={amount}
             onChange={e => setAmount(e.target.value)}
-            placeholder="e.g. 500000"
+            placeholder={`e.g. ${500_000 * periodDays}`}
             className="w-full bg-surface-2 border border-line-strong rounded-[10px] px-3 py-2 text-sm text-fg outline-none focus:border-brand/60 transition-colors placeholder:text-fg-subtle"
           />
         </div>

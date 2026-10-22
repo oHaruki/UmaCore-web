@@ -5,9 +5,23 @@ export const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '1.9',
+    date: 'Oct 22, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Embeds page — change what each member line in the daily report and live board shows, with a Discord preview built from your club’s own numbers as you type' },
+      { type: 'feat',    text: 'Pick the order (most or least behind first, biggest gain, A–Z), how many decimals numbers get, which sections appear, and their titles and colours' },
+      { type: 'feat',    text: 'Choose how days behind are counted: days in a row under quota, or days of quota missing (deficit ÷ daily quota). The report, the deficit DMs and the bomb trigger all use the same count' },
+      { type: 'feat',    text: 'Add your own extras: a message above the report that can ping a role, a note in the header, a logo and banner image, extra fields like reminders or club stats, and extra member lists such as top gainers, almost there or didn’t race' },
+      { type: 'feat',    text: 'The live board can show how far each member is towards today’s quota' },
+      { type: 'improve', text: 'The “Show daily gains” switch is now a ready-made line style on the Embeds page' },
+      { type: 'fix',     text: 'Quota fields say what period they cover — per day, per week or per 2 weeks — and show the daily equivalent, instead of calling every quota a daily one' },
+    ],
+  },
+  {
     version: '1.8',
     date: 'Oct 3, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'improve', text: 'Redesigned dashboard: larger, easier-to-read text, a club switcher at the top of the sidebar, and every club page one click away' },
       { type: 'feat',    text: 'Sidebar counts for active bombs and waiting transfer requests, so you can see what needs doing without opening each page' },

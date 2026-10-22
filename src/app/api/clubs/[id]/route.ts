@@ -29,11 +29,15 @@ export async function PATCH(
     return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
   }
 
+  if ('days_behind_mode' in body && !['streak', 'quota'].includes(body.days_behind_mode)) {
+    return NextResponse.json({ error: 'days_behind_mode must be streak or quota' }, { status: 400 })
+  }
+
   if ('period_anchor_date' in body && body.period_anchor_date !== null && !isDayKey(body.period_anchor_date)) {
     return NextResponse.json({ error: 'period_anchor_date must be a YYYY-MM-DD date, or null for calendar biweeks' }, { status: 400 })
   }
 
-  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled', 'report_daily_gain', 'live_board_channel_id', 'transfer_channel_id', 'period_anchor_date']
+  const allowed = ['daily_quota', 'quota_period', 'is_active', 'bombs_enabled', 'bomb_trigger_days', 'bomb_countdown_days', 'timezone', 'scrape_time', 'report_channel_id', 'alert_channel_id', 'monthly_info_channel_id', 'scrape_url', 'circle_id', 'public_enabled', 'image_report_enabled', 'report_daily_gain', 'live_board_channel_id', 'transfer_channel_id', 'period_anchor_date', 'days_behind_mode']
   const sets: string[] = []
   const vals: unknown[] = []
   let i = 1
