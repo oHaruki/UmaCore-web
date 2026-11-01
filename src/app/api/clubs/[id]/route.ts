@@ -19,6 +19,9 @@ export async function PATCH(
 
   const body = await req.json()
 
+  // scrape_url is NOT NULL, clearing it in settings sends null
+  if ('scrape_url' in body && !body.scrape_url) body.scrape_url = ''
+
   // Must match the bot's vocabulary exactly — quota_calculator.py silently treats an
   // unrecognised period as daily, so a typo here understates a club's quota all month.
   if ('quota_period' in body && !['daily', 'weekly', 'biweekly'].includes(body.quota_period)) {

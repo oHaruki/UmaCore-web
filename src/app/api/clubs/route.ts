@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
     ) RETURNING club_id
   `, [
     club_name,
-    scrape_url || null,
+    // scrape_url is NOT NULL in the bot's schema, so no url means '' like /club add stores
+    scrape_url || '',
     circle_id || null,
     BigInt(guild_id),
     Number(daily_quota),
