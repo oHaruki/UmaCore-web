@@ -70,7 +70,7 @@ export default async function ClubOverviewPage({
 
   const clubs = await query<ClubOption>(`
     SELECT club_id::text, club_name FROM clubs
-    WHERE club_id::text = ANY($1::text[])
+    WHERE club_id = ANY($1::uuid[])
     ORDER BY club_name
   `, [clubIds]).catch(() => [])
 
@@ -117,7 +117,7 @@ export default async function ClubOverviewPage({
         WHERE member_id = m.member_id AND club_id = c.club_id AND ${inMonthSql('date', '$3')}
         ORDER BY date DESC LIMIT 1
       ) lat ON true
-      WHERE c.club_id = $1 AND c.club_id::text = ANY($2::text[])
+      WHERE c.club_id = $1 AND c.club_id = ANY($2::uuid[])
       GROUP BY c.club_id
     `, [clubId, clubIds, start]).catch(() => []),
 
@@ -162,7 +162,7 @@ export default async function ClubOverviewPage({
         COUNT(DISTINCT member_id)::text AS members_bombed_ever,
         ROUND(AVG(CASE WHEN NOT is_active AND deactivation_date IS NOT NULL
           THEN (deactivation_date::date - activation_date::date)::numeric END))::text AS avg_duration
-      FROM bombs WHERE club_id::text = $1
+      FROM bombs WHERE club_id = $1::uuid
     `, [clubId]).catch(() => []),
   ])
 

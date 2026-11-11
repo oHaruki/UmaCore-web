@@ -60,7 +60,7 @@ export default async function DashboardPage() {
     query<ClubStat>(`
       WITH cm AS (
         SELECT club_id, date_trunc('month', MAX(date))::date AS start
-        FROM quota_history WHERE club_id::text = ANY($1::text[]) GROUP BY club_id
+        FROM quota_history WHERE club_id = ANY($1::uuid[]) GROUP BY club_id
       )
       SELECT c.club_id, c.club_name, ${EFFECTIVE_QUOTA_SQL}::text AS daily_quota, c.quota_period, c.is_active,
         to_char(MAX(cm.start), 'YYYY-MM') AS month,
@@ -77,7 +77,7 @@ export default async function DashboardPage() {
         WHERE member_id = m.member_id AND club_id = c.club_id AND date >= cm.start
         ORDER BY date DESC LIMIT 1
       ) lat ON true
-      WHERE c.club_id::text = ANY($1::text[])
+      WHERE c.club_id = ANY($1::uuid[])
       GROUP BY c.club_id ORDER BY c.club_name
     `, [clubIds]).catch(() => []),
 
@@ -87,10 +87,10 @@ export default async function DashboardPage() {
       JOIN clubs c ON c.club_id = crh.club_id
       JOIN (
         SELECT club_id, date_trunc('month', MAX(date))::date AS start
-        FROM quota_history WHERE club_id::text = ANY($1::text[]) GROUP BY club_id
+        FROM quota_history WHERE club_id = ANY($1::uuid[]) GROUP BY club_id
       ) cm ON cm.club_id = crh.club_id
       WHERE crh.date >= cm.start
-        AND c.club_id::text = ANY($1::text[])
+        AND c.club_id = ANY($1::uuid[])
       ORDER BY c.club_name, crh.date ASC
     `, [clubIds]).catch(() => []),
   ])

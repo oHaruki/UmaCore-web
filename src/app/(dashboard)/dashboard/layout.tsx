@@ -18,8 +18,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const counts = active
     ? await queryOne<{ bombs: number; transfers: number }>(`
         SELECT
-          (SELECT COUNT(*) FROM bombs WHERE club_id::text = $1 AND is_active)::int AS bombs,
-          (SELECT COUNT(*) FROM transfer_requests WHERE to_club_id::text = $1 AND status = 'pending')::int AS transfers
+          (SELECT COUNT(*) FROM bombs WHERE club_id = $1::uuid AND is_active)::int AS bombs,
+          (SELECT COUNT(*) FROM transfer_requests WHERE to_club_id = $1::uuid AND status = 'pending')::int AS transfers
       `, [active.club_id]).catch(() => null)
     : null
 

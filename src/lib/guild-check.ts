@@ -14,7 +14,7 @@ export async function managerGuildIds(session: Session): Promise<string[]> {
   const rows = await query<{ guild_id: string }>(
     `SELECT DISTINCT guild_id::text AS guild_id
      FROM guild_manager_roles
-     WHERE role_id::text = ANY($1::text[])`,
+     WHERE role_id = ANY($1::bigint[])`,
     [roleIds]
   )
   return rows.map(r => r.guild_id)
@@ -36,7 +36,7 @@ export async function isClubAdmin(session: Session, clubId: string): Promise<boo
   const guildIds = await effectiveAdminGuildIds(session)
   if (!guildIds.length) return false
   const rows = await query(
-    'SELECT 1 FROM clubs WHERE club_id = $1 AND guild_id::text = ANY($2::text[])',
+    'SELECT 1 FROM clubs WHERE club_id = $1 AND guild_id = ANY($2::bigint[])',
     [clubId, guildIds]
   )
   return rows.length > 0
@@ -48,7 +48,7 @@ export async function hasEditorRoleForClub(session: Session, clubId: string): Pr
   if (!roleIds.length) return false
   const rows = await query(
     `SELECT 1 FROM club_role_permissions
-     WHERE club_id = $1 AND role_id::text = ANY($2::text[]) LIMIT 1`,
+     WHERE club_id = $1 AND role_id = ANY($2::bigint[]) LIMIT 1`,
     [clubId, roleIds]
   )
   return rows.length > 0
@@ -65,7 +65,7 @@ export async function ownsClub(session: Session, clubId: string): Promise<boolea
   const guildIds = await effectiveAdminGuildIds(session)
   if (guildIds.length) {
     const rows = await query(
-      'SELECT 1 FROM clubs WHERE club_id = $1 AND guild_id::text = ANY($2::text[])',
+      'SELECT 1 FROM clubs WHERE club_id = $1 AND guild_id = ANY($2::bigint[])',
       [clubId, guildIds]
     )
     if (rows.length > 0) return true
@@ -80,7 +80,7 @@ export async function editorClubIds(session: Session): Promise<string[]> {
   const rows = await query<{ club_id: string }>(
     `SELECT DISTINCT club_id::text AS club_id
      FROM club_role_permissions
-     WHERE role_id::text = ANY($1::text[])`,
+     WHERE role_id = ANY($1::bigint[])`,
     [roleIds]
   )
   return rows.map(r => r.club_id)
@@ -97,7 +97,7 @@ export async function accessibleClubIds(session: Session): Promise<string[]> {
   let adminClubs: string[] = []
   if (guildIds.length) {
     const rows = await query<{ club_id: string }>(
-      'SELECT club_id::text AS club_id FROM clubs WHERE guild_id::text = ANY($1::text[])',
+      'SELECT club_id::text AS club_id FROM clubs WHERE guild_id = ANY($1::bigint[])',
       [guildIds]
     )
     adminClubs = rows.map(r => r.club_id)
@@ -113,7 +113,7 @@ export async function editorRolesInGuild(session: Session, guildId: string): Pro
     `SELECT DISTINCT crp.role_id::text AS role_id
      FROM club_role_permissions crp
      JOIN clubs c ON c.club_id = crp.club_id
-     WHERE c.guild_id::text = $1 AND crp.role_id::text = ANY($2::text[])`,
+     WHERE c.guild_id = $1::bigint AND crp.role_id = ANY($2::bigint[])`,
     [guildId, roleIds]
   )
   return rows.map(r => r.role_id)

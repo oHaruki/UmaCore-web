@@ -13,7 +13,7 @@ export async function getAccessibleClubs(session: Session): Promise<AccessibleCl
   if (!ids.length) return []
   return query<AccessibleClub>(
     `SELECT club_id::text AS club_id, club_name, is_active, guild_id::text AS guild_id
-     FROM clubs WHERE club_id::text = ANY($1::text[]) ORDER BY club_name`,
+     FROM clubs WHERE club_id = ANY($1::uuid[]) ORDER BY club_name`,
     [ids]
   )
 }
