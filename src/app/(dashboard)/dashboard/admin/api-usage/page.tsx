@@ -147,7 +147,7 @@ export default async function ApiUsagePage() {
         </div>
         <p className="text-xs text-fg-muted mt-2">
           {peakPct >= 90
-            ? 'Close to the limit — consider spacing out scrapes.'
+            ? 'Close to the limit. Consider spacing out scrapes.'
             : peakPct >= 70
             ? 'Moderate headroom.'
             : 'Plenty of headroom.'}
@@ -156,7 +156,7 @@ export default async function ApiUsagePage() {
 
       {/* Daily volume chart */}
       <section>
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg mb-3">
           Calls per day (30d)
         </h2>
         <div className="rounded-xl border border-line bg-surface-2/70 px-4 py-4">
@@ -170,7 +170,7 @@ export default async function ApiUsagePage() {
 
       {/* Endpoint breakdown */}
       <section>
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg mb-3">
           By endpoint (7d)
         </h2>
         <div className="rounded-xl border border-line overflow-hidden">
@@ -193,7 +193,7 @@ export default async function ApiUsagePage() {
                   <td className={`px-4 py-3 text-right ${Number(e.errors) > 0 ? 'text-warn' : 'text-fg-muted'}`}>
                     {Number(e.errors).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-right text-fg-muted">{e.avg_ms != null ? Number(e.avg_ms).toLocaleString() : '—'}</td>
+                  <td className="px-4 py-3 text-right text-fg-muted">{e.avg_ms != null ? Number(e.avg_ms).toLocaleString() : '-'}</td>
                 </tr>
               )) : (
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-fg-muted">No data in the last 7 days.</td></tr>
@@ -205,7 +205,7 @@ export default async function ApiUsagePage() {
 
       {/* Recent errors */}
       <section>
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg mb-3">
           Recent failures
         </h2>
         <div className="rounded-xl border border-line overflow-hidden">
@@ -229,11 +229,11 @@ export default async function ApiUsagePage() {
                     <span className="text-bad font-mono text-xs">{e.status_code ?? 'net'}</span>
                   </td>
                   <td className="px-4 py-3 text-fg-muted font-mono text-xs truncate max-w-[200px]" title={e.context ?? ''}>
-                    {e.context ?? '—'}
+                    {e.context ?? '-'}
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-fg-muted">No failures recorded. 🎉</td></tr>
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-fg-muted">No failures recorded.</td></tr>
               )}
             </tbody>
           </table>

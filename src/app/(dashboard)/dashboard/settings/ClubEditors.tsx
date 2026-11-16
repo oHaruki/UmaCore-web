@@ -95,8 +95,8 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
       </div>
       <div className="px-5 py-4 space-y-4">
         <p className="text-xs text-fg-muted leading-relaxed">
-          Anyone with one of these roles can manage this club — edit settings, channels, quota and
-          members — both here and in Discord. They <span className="text-fg-muted">cannot</span> delete
+          Anyone with one of these roles can manage this club (edit settings, channels, quota and
+          members), both here and in Discord. They <span className="text-fg-muted">cannot</span> delete
           the club (admin only). Holding an editor role also lets them create new clubs.
         </p>
 
@@ -117,7 +117,7 @@ export default function ClubEditors({ clubId }: { clubId: string }) {
             {/* Current editor roles */}
             <div className="flex flex-wrap gap-2">
               {state.editors.length === 0 && (
-                <span className="text-xs text-fg-subtle">No editor roles yet — only admins can manage this club.</span>
+                <span className="text-xs text-fg-subtle">No editor roles yet. Only admins can manage this club.</span>
               )}
               {state.editors.map(id => {
                 const role = roleById(id)

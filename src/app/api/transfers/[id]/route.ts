@@ -18,7 +18,7 @@ type Row = {
  * The decision itself is delegated to the bot rather than written here. The bot
  * owns the only guard that makes a decision idempotent (it settles a request
  * only while it is still pending) and it is the only side that can DM the
- * requester — splitting the two would let a dashboard approval land without the
+ * requester. Splitting the two would let a dashboard approval land without the
  * person ever being told, which is the whole point of the queue.
  */
 export async function PATCH(
@@ -67,7 +67,7 @@ export async function PATCH(
     })
   } catch {
     return NextResponse.json(
-      { error: 'Bot is unreachable — the requester could not be notified, so nothing was changed.' },
+      { error: 'Bot is unreachable. The requester could not be notified, so nothing was changed.' },
       { status: 503 }
     )
   }

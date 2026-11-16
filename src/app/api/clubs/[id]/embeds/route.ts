@@ -21,7 +21,7 @@ async function botJson<T>(path: string, init?: RequestInit): Promise<{ status: n
 const offline = () =>
   NextResponse.json({ error: 'UmaCore is offline, so the editor can’t load or check styles right now.' }, { status: 503 })
 
-// GET — the editor's fields, presets and the club's current styles
+// GET: the editor's fields, presets and the club's current styles
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -53,7 +53,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 }
 
-// POST — preview one kind with an unsaved style  { kind, style, days_behind_mode?, closed? }
+// POST: preview one kind with an unsaved style  { kind, style, days_behind_mode?, closed? }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json(res.data, { status: res.status })
 }
 
-// PUT — save  { style: { report, live }, days_behind_mode }
+// PUT: save  { style: { report, live }, days_behind_mode }
 //
 // The bot checks every field and hands back only what differs from the
 // defaults. The old daily-gain switch goes off in the same write: the editor

@@ -30,7 +30,7 @@ async function clubGuildId(clubId: string): Promise<string | null> {
   return rows[0]?.guild_id ?? null
 }
 
-// GET — current editor role bindings for the club + the guild's assignable roles
+// GET: current editor role bindings for the club + the guild's assignable roles
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -55,7 +55,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   })
 }
 
-// POST — bind a role to the club  { role_id }
+// POST: bind a role to the club  { role_id }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({ ok: true })
 }
 
-// DELETE — remove a role binding  { role_id }
+// DELETE: remove a role binding  { role_id }
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

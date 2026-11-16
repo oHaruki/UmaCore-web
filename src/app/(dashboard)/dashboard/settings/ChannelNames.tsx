@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Hash, MessagesSquare, Newspaper, Radio, Volume2, type LucideIcon } from 'lucide-react'
 
 type GuildChannel = {
   id: string
@@ -41,9 +42,19 @@ const PRESETS = [
   { label: 'Grade', template: '🎖│{grade} · #{rank}' },
 ]
 
-const TYPE_ICON: Record<string, string> = {
-  voice: '🔊', stage: '📣', text: '#', news: '📰', forum: '💬',
+const TYPE_ICON: Record<string, LucideIcon> = {
+  voice: Volume2, stage: Radio, text: Hash, news: Newspaper, forum: MessagesSquare,
 }
+
+function ChannelIcon({ type }: { type?: string }) {
+  const Icon = TYPE_ICON[type ?? 'voice'] ?? Volume2
+  return <Icon size={15} strokeWidth={1.75} className="shrink-0 text-fg-subtle" aria-label={`${type ?? 'voice'} channel`} />
+}
+
+// <option> can't hold an icon, so the type goes in words
+const optionLabel = (c: { type: string; name: string; category: string | null }) =>
+  (c.type === 'text' || c.type === 'news' ? `#${c.name}` : c.name) +
+  (c.type !== 'text' || c.category ? ` (${[c.type !== 'text' && c.type, c.category].filter(Boolean).join(', ')})` : '')
 
 export default function ChannelNames({ clubId }: { clubId: string }) {
   const [state, setState] = useState<State>({
@@ -93,7 +104,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
 
   useEffect(() => { load() }, [load])
 
-  // Preview is rendered by the bot, which owns the token vocabulary — a second
+  // Preview is rendered by the bot, which owns the token vocabulary; a second
   // implementation here would drift from it the first time a token is added.
   useEffect(() => {
     const timer = setTimeout(async () => {
@@ -152,7 +163,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
       setNotice(`Saved. The channel now reads “${outcome.name}”.`)
     } else if (outcome?.status === 'forbidden' || outcome?.status === 'not_cached') {
       // Nearly always the same cause, and it is not obvious: see ADD_ME below.
-      setNotice('Saved, but the rename was refused. Add UmaCore to that channel — see below.')
+      setNotice('Saved, but the rename was refused. Add UmaCore to that channel, see below.')
     } else if (outcome?.status) {
       setNotice(`Saved, but the rename didn’t go through. It retries on the next update.`)
     } else {
@@ -183,7 +194,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
     const r = data.refreshed
     setNotice(
       r.updated ? `Renamed ${r.updated} channel${r.updated === 1 ? '' : 's'}.`
-        : r.forbidden ? 'Refused — UmaCore needs adding to that channel. See below.'
+        : r.forbidden ? 'Refused. UmaCore needs adding to that channel. See below.'
           : r.failed ? 'Nothing could be renamed. It retries on the next update.'
             : 'Everything is already up to date.'
     )
@@ -226,7 +237,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
       <div className="px-5 py-4 space-y-4">
         <p className="text-xs text-fg-muted leading-relaxed">
           Let a channel&apos;s <span className="text-fg-soft">name</span> show this club&apos;s
-          figures — the locked voice channel most servers keep at the top for exactly this, kept
+          figures, like the locked voice channel most servers keep at the top for exactly this, kept
           current without anyone editing it. The bot rewrites it after each live update
           (hourly) and again after the daily scrape. You can point several channels at the same
           club, each with its own template.
@@ -250,7 +261,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                     key={b.channel_id}
                     className="flex items-center gap-3 rounded border border-line bg-surface-2 px-3 py-2.5"
                   >
-                    <span className="text-sm shrink-0">{TYPE_ICON[ch?.type ?? 'voice'] ?? '🔊'}</span>
+                    <ChannelIcon type={ch?.type} />
                     <div className="min-w-0 flex-1">
                       {editing === b.channel_id ? (
                         <input
@@ -351,8 +362,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                   </option>
                   {available.map(c => (
                     <option key={c.id} value={c.id}>
-                      {TYPE_ICON[c.type] ?? '#'} {c.name}
-                      {c.category ? ` — ${c.category}` : ''}
+                      {optionLabel(c)}
                       {c.can_rename === false ? ' (may lack permission)' : ''}
                     </option>
                   ))}
@@ -361,14 +371,14 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
 
               {picked && picked.can_rename === false && (
                 <p className="text-xs text-warn">
-                  UmaCore may not be able to rename #{picked.name}. Save anyway — it renames
+                  UmaCore may not be able to rename #{picked.name}. Save anyway; it renames
                   immediately and tells you what happened.
                 </p>
               )}
               {picked && picked.needs_connect && (
                 <p className="text-xs text-warn">
                   This is a voice channel, so UmaCore also needs <span className="text-fg-soft">
-                  Connect</span> on it — Discord blocks renaming a voice channel you can&apos;t
+                  Connect</span> on it, since Discord blocks renaming a voice channel you can&apos;t
                   join. Everyone else can stay locked out.
                 </p>
               )}
@@ -398,7 +408,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
 
               <div>
                 <label className="block text-xs text-fg-muted mb-1">
-                  Name — write whatever you want. Tokens like{' '}
+                  Name: write whatever you want. Tokens like{' '}
                   <span className="font-mono text-fg-muted">{'{rank}'}</span> fill in the
                   numbers; everything else appears exactly as typed.
                 </label>
@@ -467,7 +477,7 @@ export default function ChannelNames({ clubId }: { clubId: string }) {
                   Voice channels also need <span className="text-warn">Connect</span>.
                 </p>
                 <p className="text-xs text-fg-muted mt-1 leading-relaxed">
-                  Discord won&apos;t let anyone rename a voice channel they can&apos;t join — even
+                  Discord won&apos;t let anyone rename a voice channel they can&apos;t join, even
                   with Manage Channel. A display VC is usually locked by denying Connect to
                   everyone, which locks UmaCore out too. Allow it for UmaCore specifically and
                   everyone else stays locked out:{' '}

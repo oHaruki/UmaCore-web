@@ -29,7 +29,7 @@ export async function effectiveAdminGuildIds(session: Session): Promise<string[]
 
 /**
  * Full-admin check for a club: the user is a Discord administrator OR holds a
- * manager role in the club's guild. Used for actions above a per-club editor —
+ * manager role in the club's guild. Used for actions above a per-club editor:
  * assigning club-editor roles, deleting, etc.
  */
 export async function isClubAdmin(session: Session, clubId: string): Promise<boolean> {
@@ -58,7 +58,7 @@ export async function hasEditorRoleForClub(session: Session, clubId: string): Pr
  * Can the user manage this club?
  *  - Administrator of the club's guild, OR
  *  - holds an editor role bound to THIS club (and only this club).
- * Note: club deletion is never granted here — that stays admin-only and is not
+ * Note: club deletion is never granted here; that stays admin-only and is not
  * exposed via the web at all.
  */
 export async function ownsClub(session: Session, clubId: string): Promise<boolean> {
@@ -88,7 +88,7 @@ export async function editorClubIds(session: Session): Promise<string[]> {
 
 /**
  * Every club the user can see: clubs in guilds they administer, plus clubs an
- * editor role grants them. Returned as a flat list of club_ids — pages filter
+ * editor role grants them. Returned as a flat list of club_ids, and pages filter
  * with `WHERE club_id = ANY(...)` instead of by guild, so editor clubs show up.
  */
 export async function accessibleClubIds(session: Session): Promise<string[]> {

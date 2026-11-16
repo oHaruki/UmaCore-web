@@ -125,11 +125,11 @@ export default async function BombsPage({
                       </td>
                     ) : (
                       <td className="num text-fg-muted">
-                        {b.deactivation_date ? new Date(b.deactivation_date).toLocaleDateString() : '–'}
+                        {b.deactivation_date ? new Date(b.deactivation_date).toLocaleDateString() : '-'}
                       </td>
                     )}
                     <td className="num hidden text-fg-subtle md:table-cell">
-                      {b.last_countdown_update ? new Date(b.last_countdown_update).toLocaleDateString() : '–'}
+                      {b.last_countdown_update ? new Date(b.last_countdown_update).toLocaleDateString() : '-'}
                     </td>
                   </tr>
                 ))}

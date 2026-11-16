@@ -8,8 +8,9 @@ export default auth((req) => {
   // Protect all API routes and dashboard pages
   const isProtected = pathname.startsWith('/api/') || pathname.startsWith('/dashboard')
 
-  // Allow auth callback and OG image through unconditionally
-  if (pathname.startsWith('/api/auth') || pathname === '/api/og') return NextResponse.next()
+  // Allow auth callback, OG image and public assets through unconditionally
+  if (pathname.startsWith('/api/auth') || pathname === '/api/og' || pathname.startsWith('/api/public/'))
+    return NextResponse.next()
 
   if (isProtected && !isAuthed) {
     if (pathname.startsWith('/api/')) {

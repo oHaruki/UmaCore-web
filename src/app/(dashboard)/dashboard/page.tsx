@@ -187,7 +187,7 @@ export default async function DashboardPage() {
             return (
               <ClubCardLink key={club.club_id} clubId={club.club_id} label={`Open ${club.club_name}`}>
                 <article
-                  className="panel group h-full p-5 transition-[border-color,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong"
+                  className="panel group h-full p-5 transition-colors duration-200 hover:border-line-strong"
                   style={{ backgroundImage: `radial-gradient(120% 90% at 0% 0%, oklch(0.32 0.06 ${hue} / 22%), transparent 55%)` }}
                 >
                   <div className="flex items-start gap-3">
@@ -214,7 +214,7 @@ export default async function DashboardPage() {
                   <div className="mt-6 flex items-end justify-between gap-4">
                     <div>
                       <p className="num font-display text-[34px] font-semibold leading-none tracking-[-0.02em] text-fg">
-                        {pct === null ? '–' : `${pct}%`}
+                        {pct === null ? '-' : `${pct}%`}
                       </p>
                       <p className="mt-1.5 text-[13px] text-fg-muted">
                         {total

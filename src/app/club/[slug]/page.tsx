@@ -1,6 +1,7 @@
 import { query, queryOne } from '@/lib/db'
 import { EFFECTIVE_QUOTA_SQL } from '@/lib/quota'
 import { notFound } from 'next/navigation'
+import { Clock, TriangleAlert } from 'lucide-react'
 import type { Metadata } from 'next'
 
 // ── Types ──────────────────────────────────────────────────────
@@ -33,7 +34,7 @@ export async function generateMetadata(
     `SELECT club_name, public_enabled FROM clubs WHERE public_slug = $1`, [slug]
   ).catch(() => null)
   if (!club?.public_enabled) return { title: 'UmaCore' }
-  return { title: `${club.club_name} — UmaCore` }
+  return { title: `${club.club_name} | UmaCore` }
 }
 
 // ── Page ───────────────────────────────────────────────────────
@@ -106,9 +107,9 @@ export default async function PublicClubPage(
   const rankDelta  = latestRank && prevRank ? prevRank - latestRank : null // positive = improved
 
   // ── Dates & staleness ─────────────────────────────────────
-  // latestDate  = the quota_history `date` column — on May 1 the bot stores this
+  // latestDate  = the quota_history `date` column; on May 1 the bot stores this
   //               as April 30 because Uma.moe hasn't refreshed yet.
-  // latestScrapedAt = MAX(created_at) — the actual wall-clock time the scrape ran.
+  // latestScrapedAt = MAX(created_at), the actual wall-clock time the scrape ran.
   //               This is May 1 even when the stored date is April 30.
   // We use latestScrapedAt for staleness so "scrape ran today, data stored as Apr 30"
   // is correctly treated as fresh, not pending.
@@ -158,26 +159,26 @@ export default async function PublicClubPage(
 
       {/* ── Status banner ──────────────────────────────────────── */}
       {isNewMonthPending && daysRemaining > 0 && (
-        <div className="bg-violet-500/8 border-b border-violet-500/20 px-6 py-2.5 flex items-center gap-2">
-          <span className="text-violet-400 text-xs">◌</span>
-          <p className="text-xs text-violet-400/80">
-            {monthName} day {dayOfMonth + 1} data incoming — today&apos;s scrape fetches the final day from Uma.moe (updates ~16:00 UTC).
+        <div className="bg-brand/8 border-b border-brand/20 px-6 py-2.5 flex items-center gap-2">
+          <Clock size={13} strokeWidth={1.75} className="shrink-0 text-brand" />
+          <p className="text-xs text-brand/80">
+            {monthName} day {dayOfMonth + 1} data incoming. Today&apos;s scrape fetches the final day from Uma.moe (updates ~16:00 UTC).
           </p>
         </div>
       )}
       {isNewMonthPending && daysRemaining === 0 && (
-        <div className="bg-violet-500/8 border-b border-violet-500/20 px-6 py-2.5 flex items-center gap-2">
-          <span className="text-violet-400 text-xs">◌</span>
-          <p className="text-xs text-violet-400/80">
-            {monthName} complete — {nextMonthName} tracking begins after today&apos;s scrape.
+        <div className="bg-brand/8 border-b border-brand/20 px-6 py-2.5 flex items-center gap-2">
+          <Clock size={13} strokeWidth={1.75} className="shrink-0 text-brand" />
+          <p className="text-xs text-brand/80">
+            {monthName} complete. {nextMonthName} tracking begins after today&apos;s scrape.
           </p>
         </div>
       )}
       {isStale && (
-        <div className="bg-amber-500/8 border-b border-amber-500/20 px-6 py-2.5 flex items-center gap-2">
-          <span className="text-amber-400 text-xs">⚠</span>
-          <p className="text-xs text-amber-400/80">
-            Showing {monthName} through day {dayOfMonth} — {daysSinceScrape} day{daysSinceScrape !== 1 ? 's' : ''} of data missing, bot may not have run.
+        <div className="bg-warn/8 border-b border-warn/20 px-6 py-2.5 flex items-center gap-2">
+          <TriangleAlert size={13} strokeWidth={1.75} className="shrink-0 text-warn" />
+          <p className="text-xs text-warn/80">
+            Showing {monthName} through day {dayOfMonth}. {daysSinceScrape} day{daysSinceScrape !== 1 ? 's' : ''} of data missing, so the bot may not have run.
           </p>
         </div>
       )}
@@ -209,7 +210,7 @@ export default async function PublicClubPage(
               </p>
             </div>
             <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
-              <div className="h-full bg-violet-500/60 rounded-full" style={{ width: `${monthPct}%` }} />
+              <div className="h-full bg-brand/60 rounded-full" style={{ width: `${monthPct}%` }} />
             </div>
           </div>
 
@@ -243,13 +244,13 @@ export default async function PublicClubPage(
               <div className="flex items-center justify-between">
                 <p className="text-xs text-zinc-500">Fan health</p>
                 <p className={`text-xs font-semibold tabular-nums
-                  ${totalSurplus >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  ${totalSurplus >= 0 ? 'text-good' : 'text-bad'}`}>
                   {totalSurplus >= 0 ? '+' : ''}{fmt(totalSurplus)}
                 </p>
               </div>
               <div className="h-2 rounded-full bg-white/5 overflow-hidden">
                 <div
-                  className={`h-full rounded-full ${totalSurplus >= 0 ? 'bg-emerald-500' : 'bg-red-500'}`}
+                  className={`h-full rounded-full ${totalSurplus >= 0 ? 'bg-good' : 'bg-bad'}`}
                   style={{ width: `${fanProgressPct}%` }}
                 />
               </div>
@@ -276,13 +277,13 @@ export default async function PublicClubPage(
               </div>
               <div className="h-2 rounded-full bg-white/5 overflow-hidden flex">
                 {onTrack > 0 && (
-                  <div className="bg-emerald-500 h-full" style={{ width: `${(onTrack / total) * 100}%` }} />
+                  <div className="bg-good h-full" style={{ width: `${(onTrack / total) * 100}%` }} />
                 )}
                 {behind > 0 && (
-                  <div className="bg-amber-500 h-full" style={{ width: `${(behind / total) * 100}%` }} />
+                  <div className="bg-warn h-full" style={{ width: `${(behind / total) * 100}%` }} />
                 )}
                 {bombCount > 0 && (
-                  <div className="bg-red-500 h-full" style={{ width: `${(bombCount / total) * 100}%` }} />
+                  <div className="bg-bad h-full" style={{ width: `${(bombCount / total) * 100}%` }} />
                 )}
               </div>
               <div className="flex flex-wrap gap-x-4 gap-y-1">
@@ -309,14 +310,14 @@ export default async function PublicClubPage(
 
           {/* Active bombs alert */}
           {club.bombs_enabled && bombCount > 0 && (
-            <div className="bg-red-500/5 border border-red-500/20 rounded-xl overflow-hidden">
-              <div className="px-5 py-3 border-b border-red-500/15 flex items-center gap-2">
+            <div className="bg-bad/5 border border-bad/20 rounded-xl overflow-hidden">
+              <div className="px-5 py-3 border-b border-bad/15 flex items-center gap-2">
                 <span className="text-sm">💣</span>
-                <p className="text-xs font-semibold text-red-400">
-                  {bombCount} active bomb{bombCount > 1 ? 's' : ''} — members at risk of removal
+                <p className="text-xs font-semibold text-bad">
+                  {bombCount} active bomb{bombCount > 1 ? 's' : ''}, members at risk of removal
                 </p>
               </div>
-              <div className="divide-y divide-red-500/10">
+              <div className="divide-y divide-bad/10">
                 {bombMembers.map(m => {
                   const deficit = m.deficit_surplus ? Number(m.deficit_surplus) : 0
                   const needed  = Math.ceil((Math.abs(deficit) / daysRemaining) + dailyQuota)
@@ -324,7 +325,7 @@ export default async function PublicClubPage(
                     <div key={m.member_id} className="flex items-center justify-between px-5 py-2.5 gap-4">
                       <span className="text-sm text-zinc-200 truncate">{m.trainer_name}</span>
                       <div className="flex items-center gap-4 shrink-0 text-right">
-                        <span className="text-xs text-red-400 tabular-nums">{fmt(deficit)} fans</span>
+                        <span className="text-xs text-bad tabular-nums">{fmt(deficit)} fans</span>
                         <div>
                           <p className="text-xs font-semibold text-red-300">
                             {m.bomb_days_remaining}d left
@@ -344,9 +345,7 @@ export default async function PublicClubPage(
           {/* Member table */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-widest">
-                Members
-              </p>
+              <p className="text-xs font-medium text-zinc-400">Members</p>
               <p className="text-[10px] text-zinc-700">
                 {total} active · {daysRemaining > 0 ? `${daysRemaining}d left in ${monthName}` : `${monthName} complete`}
               </p>
@@ -354,12 +353,12 @@ export default async function PublicClubPage(
 
             {members.length === 0 ? (
               <div className="bg-[#0d0d14] border border-white/5 rounded-xl p-16 text-center">
-                <p className="text-sm text-zinc-600">No data yet — check back after the first scrape.</p>
+                <p className="text-sm text-zinc-600">No data yet. Check back after the first scrape.</p>
               </div>
             ) : (
               <div className="bg-[#0d0d14] border border-white/5 rounded-xl overflow-hidden">
                 <div className="hidden sm:grid px-5 py-2.5 border-b border-white/5
-                                text-[10px] font-medium text-zinc-600 uppercase tracking-wide gap-4"
+                                text-[11px] font-medium text-zinc-500 gap-4"
                   style={{ gridTemplateColumns: '2rem 1fr 6rem 1fr 8rem' }}>
                   <span>#</span>
                   <span>Member</span>
@@ -412,20 +411,20 @@ function MemberRow({ member, rank, bombsEnabled, maxAbsSurplus, daysRemaining, d
     ? Math.ceil(dailyQuota + Math.abs(surplus) / daysRemaining)
     : null
 
-  const accent = isOnTrack            ? 'bg-emerald-500'
-    : hasBomb && bombsEnabled         ? 'bg-red-500'
-    : isBehind                        ? 'bg-amber-500'
+  const accent = isOnTrack            ? 'bg-good'
+    : hasBomb && bombsEnabled         ? 'bg-bad'
+    : isBehind                        ? 'bg-warn'
     : 'bg-zinc-700'
 
-  const barFill = isOnTrack           ? 'bg-emerald-500'
-    : hasBomb && bombsEnabled         ? 'bg-red-500'
-    : 'bg-amber-500'
+  const barFill = isOnTrack           ? 'bg-good'
+    : hasBomb && bombsEnabled         ? 'bg-bad'
+    : 'bg-warn'
 
-  const surplusColor = isOnTrack      ? 'text-emerald-400'
-    : hasBomb && bombsEnabled         ? 'text-red-400'
-    : 'text-amber-400'
+  const surplusColor = isOnTrack      ? 'text-good'
+    : hasBomb && bombsEnabled         ? 'text-bad'
+    : 'text-warn'
 
-  const surplusText = surplus === null ? '—'
+  const surplusText = surplus === null ? '-'
     : surplus >= 0 ? `+${fmt(surplus)}` : fmt(surplus)
 
   const barWidth = surplus !== null
@@ -464,7 +463,7 @@ function MemberRow({ member, rank, bombsEnabled, maxAbsSurplus, daysRemaining, d
         <span className={`text-xs tabular-nums ${rankColor}`}>{rank}</span>
         <span className="text-sm font-medium text-zinc-100 truncate">{member.trainer_name}</span>
         <span className="text-xs text-zinc-500 tabular-nums text-right">
-          {fans !== null ? fmtLarge(fans) : '—'}
+          {fans !== null ? fmtLarge(fans) : '-'}
         </span>
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden">
@@ -499,9 +498,9 @@ function StatRow({ value, label, color, isText, sub }: {
   sub?: { text: string; color: 'emerald' | 'red' }
 }) {
   const colors: Record<string, string> = {
-    emerald: 'text-emerald-400', amber: 'text-amber-400', red: 'text-red-400',
+    emerald: 'text-good', amber: 'text-warn', red: 'text-bad',
   }
-  const subColors: Record<string, string> = { emerald: 'text-emerald-500', red: 'text-red-500' }
+  const subColors: Record<string, string> = { emerald: 'text-good', red: 'text-bad' }
   return (
     <div className="flex items-center justify-between px-4 py-3">
       <span className="text-sm text-zinc-400">{label}</span>
@@ -519,9 +518,9 @@ function StatRow({ value, label, color, isText, sub }: {
 
 function Pill({ children, color }: { children: React.ReactNode; color: 'emerald' | 'amber' | 'red' }) {
   const c = {
-    emerald: 'bg-emerald-500/10 text-emerald-400',
-    amber:   'bg-amber-500/10 text-amber-400',
-    red:     'bg-red-500/10 text-red-400',
+    emerald: 'bg-good/10 text-good',
+    amber:   'bg-warn/10 text-warn',
+    red:     'bg-bad/10 text-bad',
   }
   return (
     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap ${c[color]}`}>
@@ -531,7 +530,7 @@ function Pill({ children, color }: { children: React.ReactNode; color: 'emerald'
 }
 
 function Dot({ color, label }: { color: 'emerald' | 'amber' | 'red'; label: string }) {
-  const c = { emerald: 'bg-emerald-500', amber: 'bg-amber-500', red: 'bg-red-500' }
+  const c = { emerald: 'bg-good', amber: 'bg-warn', red: 'bg-bad' }
   return (
     <div className="flex items-center gap-1.5">
       <span className={`w-1.5 h-1.5 rounded-full ${c[color]}`} />

@@ -7,7 +7,7 @@ export const ACTIVE_CLUB_COOKIE = 'active_club'
 
 export type AccessibleClub = { club_id: string; club_name: string; is_active: boolean; guild_id: string | null }
 
-/** All clubs the user can access, with names — for the switcher and landing grid. */
+/** All clubs the user can access, with names, for the switcher and landing grid. */
 export async function getAccessibleClubs(session: Session): Promise<AccessibleClub[]> {
   const ids = await accessibleClubIds(session)
   if (!ids.length) return []

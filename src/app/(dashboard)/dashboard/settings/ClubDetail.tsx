@@ -121,7 +121,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
           <NumberField
             label={`Default quota per ${PERIOD_LABEL[quotaPeriod] ?? 'day'}`}
             value={Number(club.daily_quota)}
-            hint="Falls back to this only when no dated change below applies — set the live quota with /quota or in Quota changes below."
+            hint="Falls back to this only when no dated change below applies. Set the live quota with /quota or in Quota changes below."
             savedStatus={fs('daily_quota')}
             onSave={v => save({ daily_quota: v }, 'daily_quota')}
           />
@@ -136,7 +136,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             value={club.scrape_time}
             savedStatus={fs('scrape_time')}
             onSave={v => save({ scrape_time: v }, 'scrape_time')}
-            hint="Recommended: 18:00 — uma.moe refreshes data around this time"
+            hint="Recommended: 18:00, when uma.moe refreshes data around this time"
           />
         </div>
         {quotaPeriod === 'biweekly' && (
@@ -206,7 +206,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             </p>
           )}
           <p className="text-xs text-fg-subtle leading-relaxed">
-            The board is display only — its numbers are not final while the day is still running.
+            The board is display only; its numbers are not final while the day is still running.
             Your daily report is unchanged and remains the only thing driving quota tracking,
             bombs and DMs.
           </p>
@@ -218,7 +218,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="space-y-3">
           <ChannelField
             label="Transfer requests channel"
-            description="Where new requests are announced. Leave empty for no announcement — the queue still works."
+            description="Where new requests are announced. Leave empty for no announcement. The queue still works."
             value={transferChannel}
             savedStatus={fs('transfer_channel_id')}
             onSave={v => {
@@ -230,9 +230,9 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
           <p className="text-xs text-fg-subtle leading-relaxed">
             Members queue up with <code className="text-fg-muted">/transfer_request</code>, which
             takes their trainer name and ID from{' '}
-            <code className="text-fg-muted">/link_trainer</code> — so a linked trainer is required
+            <code className="text-fg-muted">/link_trainer</code>, so a linked trainer is required
             and there is no ID to mistype. Approve or decline them on the Transfers page or with{' '}
-            <code className="text-fg-muted">/transfer_queue</code> — announcements carry no buttons,
+            <code className="text-fg-muted">/transfer_queue</code>. Announcements carry no buttons,
             so decisions stay in one place. Approving DMs the requester to check their in-game invites.
           </p>
         </div>
@@ -276,7 +276,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
 
           <div className={`grid grid-cols-2 gap-4 transition-opacity duration-200 ${!bombsEnabled ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             <NumberField
-              label="Trigger — days behind"
+              label="Trigger (days behind)"
               value={club.bomb_trigger_days}
               savedStatus={fs('bomb_trigger_days')}
               onSave={v => save({ bomb_trigger_days: v }, 'bomb_trigger_days')}
@@ -285,7 +285,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
                 : 'Consecutive days behind quota before a bomb activates'}
             />
             <NumberField
-              label="Countdown — days to recover"
+              label="Countdown (days to recover)"
               value={club.bomb_countdown_days}
               savedStatus={fs('bomb_countdown_days')}
               onSave={v => save({ bomb_countdown_days: v }, 'bomb_countdown_days')}
@@ -300,7 +300,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
         <div className="space-y-4">
           <ChannelField
             label="Report channel"
-            description="Daily quota reports are posted here — required for automatic scraping"
+            description="Daily quota reports are posted here, required for automatic scraping"
             value={club.report_channel_id}
             savedStatus={fs('report_channel_id')}
             onSave={v => { const val = v || null; setSetup(s => ({ ...s, report_channel_id: val })); save({ report_channel_id: val }, 'report_channel_id') }}
@@ -332,7 +332,7 @@ export default function ClubDetail({ club, quotaHistory }: { club: Club; quotaHi
             <div>
               <p className="text-sm text-fg-soft">Public dashboard</p>
               <p className="text-xs text-fg-subtle mt-0.5">
-                Share a read-only link showing member quota status — no login required
+                Share a read-only link showing member quota status, no login required
               </p>
             </div>
             <Toggle
@@ -459,7 +459,7 @@ function QuotaRequirementsManager({ clubId, initialHistory, quotaPeriod }: {
   const parsedAmount = Number(amount)
 
   return (
-    <Section title={`Quota changes — ${monthLabel}`}>
+    <Section title={`Quota changes in ${monthLabel}`}>
 
       {/* ── Timeline ── */}
       <div className="relative select-none" style={{ height: '96px' }}>
@@ -506,7 +506,7 @@ function QuotaRequirementsManager({ clubId, initialHistory, quotaPeriod }: {
               {/* Dot */}
               <div className="w-2.5 h-2.5 rounded-full bg-brand-solid ring-2 ring-surface relative z-10" />
 
-              {/* Label — alternates above / below */}
+              {/* Label: alternates above / below */}
               <div
                 className="absolute left-1/2 -translate-x-1/2 whitespace-nowrap text-center pointer-events-none"
                 style={above ? { bottom: '14px' } : { top: '14px' }}
@@ -517,7 +517,7 @@ function QuotaRequirementsManager({ clubId, initialHistory, quotaPeriod }: {
                 <p className="text-[10px] text-fg-muted leading-tight">{q.set_by ?? `${now.toLocaleString('default', { month: 'short' })} ${day}`}</p>
               </div>
 
-              {/* Delete button — appears on hover */}
+              {/* Delete button, appears on hover */}
               <button
                 onClick={() => handleDelete(q.id)}
                 disabled={deletingId !== null}
@@ -601,7 +601,7 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
     {
       done: hasScrapeSrc,
       label: 'Scrape URL or Circle ID',
-      detail: 'The Uma.moe circle to pull fan data from. Either field works — set whichever you have.',
+      detail: 'The Uma.moe circle to pull fan data from. Either field works, so set whichever you have.',
       critical: true,
     },
     {
@@ -658,7 +658,7 @@ function SetupChecklist({ setup }: { setup: SetupState }) {
             The bot runs once daily at your configured scrape time. It pulls each member&apos;s fan count from Uma.moe, checks it against their quota, and posts a report to Discord.
           </p>
           <p className="text-xs text-fg-muted leading-relaxed">
-            Members who fall behind build up &ldquo;days behind.&rdquo; Once they hit the trigger threshold a bomb starts — they have a set number of days to recover before being flagged for removal.
+            Members who fall behind build up &ldquo;days behind.&rdquo; Once they hit the trigger threshold a bomb starts, and they have a set number of days to recover before being flagged for removal.
           </p>
           <p className="text-xs text-fg-subtle leading-relaxed">
             To get a channel ID: enable Developer Mode in Discord (<span className="text-fg-muted">Settings → Advanced</span>), then right-click any channel → <span className="text-fg-muted">Copy Channel ID</span>.
@@ -709,7 +709,7 @@ function ReadField({ label, value, mono }: { label: string; value: string | null
     <div>
       <p className="text-xs text-fg-muted mb-1.5">{label}</p>
       <p className={`text-sm text-fg-soft truncate ${mono ? 'font-mono text-xs' : ''}`}>
-        {value ?? <span className="text-fg-subtle">–</span>}
+        {value ?? <span className="text-fg-subtle">-</span>}
       </p>
     </div>
   )
@@ -858,7 +858,7 @@ function BiweekCycleField({ anchor, referenceDay, onSave, savedStatus }: {
                 key={p.start}
                 className={`num rounded-[10px] border px-2.5 py-1 text-xs ${i === 0 ? 'border-brand/40 text-fg' : 'border-line text-fg-muted'}`}
               >
-                {formatDay(p.start)} – {formatDay(p.end)}
+                {formatDay(p.start)} - {formatDay(p.end)}
                 {i === 0 && <span className="ml-1.5 text-brand">now</span>}
               </li>
             ))}
@@ -870,7 +870,7 @@ function BiweekCycleField({ anchor, referenceDay, onSave, savedStatus }: {
         </>
       ) : (
         <p className="text-[11px] text-fg-subtle mt-2">
-          Biweeks follow the calendar: 1st–14th, 15th–28th, 29th–end. Pick a tally day to run
+          Biweeks follow the calendar: 1st-14th, 15th-28th, 29th-end. Pick a tally day to run
           your own 14-day cycle from it instead.
         </p>
       )}

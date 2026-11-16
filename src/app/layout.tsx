@@ -25,7 +25,7 @@ const APP_URL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 export const metadata: Metadata = {
   title: {
     default: 'UmaCore',
-    template: '%s — UmaCore',
+    template: '%s | UmaCore',
   },
   description: 'Quota tracking, member management, and reports for Uma Musume club admins.',
   metadataBase: new URL(APP_URL),

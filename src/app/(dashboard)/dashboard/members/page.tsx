@@ -144,10 +144,10 @@ export default async function MembersPage({
                       <Chip tone={m.is_active ? 'good' : 'neutral'}>{m.is_active ? 'Active' : 'Inactive'}</Chip>
                     </td>
                     <td className="hidden text-fg-muted lg:table-cell" title={m.last_seen ? new Date(m.last_seen).toLocaleString() : undefined}>
-                      {timeAgo(m.last_seen) ?? '–'}
+                      {timeAgo(m.last_seen) ?? '-'}
                     </td>
                     <td className="num text-right text-fg-muted">
-                      {m.cumulative_fans ? formatFans(Number(m.cumulative_fans)) : '–'}
+                      {m.cumulative_fans ? formatFans(Number(m.cumulative_fans)) : '-'}
                     </td>
                     <td>
                       {surplus !== null ? (
@@ -159,12 +159,12 @@ export default async function MembersPage({
                             aria-hidden
                           />
                         </div>
-                      ) : <span className="text-fg-subtle">–</span>}
+                      ) : <span className="text-fg-subtle">-</span>}
                     </td>
                     <td className="hidden md:table-cell">
                       {m.days_behind !== null
-                        ? <span className={`num ${Number(m.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>{Number(m.days_behind) > 0 ? `${m.days_behind}d` : '–'}</span>
-                        : <span className="text-fg-subtle">–</span>}
+                        ? <span className={`num ${Number(m.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>{Number(m.days_behind) > 0 ? `${m.days_behind}d` : '-'}</span>
+                        : <span className="text-fg-subtle">-</span>}
                     </td>
                     <td className="text-right">
                       <MemberToggle memberId={m.member_id} isActive={m.is_active} name={m.trainer_name} />

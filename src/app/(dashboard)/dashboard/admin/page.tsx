@@ -50,7 +50,7 @@ export default async function AdminPage() {
 
       {/* Stats grid */}
       <section>
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">Overview</h2>
+        <h2 className="text-sm font-semibold text-fg mb-3">Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { label: 'Guilds',          value: s.guilds },
@@ -70,7 +70,7 @@ export default async function AdminPage() {
 
       {/* Top guilds by member count */}
       <section>
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider mb-3">
+        <h2 className="text-sm font-semibold text-fg mb-3">
           Top 10 guilds by active members
         </h2>
         <div className="rounded-xl border border-line overflow-hidden">

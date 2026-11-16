@@ -2,7 +2,7 @@ import { Clock, UserPlus, Bomb, RefreshCw, LogOut, TrendingUp } from 'lucide-rea
 import type { Metadata } from 'next'
 import { PageHeader } from '@/components/dash/ui'
 
-export const metadata: Metadata = { title: 'Guide — UmaCore' }
+export const metadata: Metadata = { title: 'Guide | UmaCore' }
 
 export default function GuidePage() {
   return (
@@ -24,7 +24,7 @@ export default function GuidePage() {
         </div>
 
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <Note>The bot will <strong className="text-fg-soft">not run</strong> unless a report channel is set — this is the most common setup mistake.</Note>
+          <Note>The bot will <strong className="text-fg-soft">not run</strong> unless a report channel is set. This is the most common setup mistake.</Note>
           <Note>Recommended scrape time: <strong className="text-fg-soft">18:00 Europe/Amsterdam</strong>. Uma.moe updates fan data around this time each day.</Note>
           <Note>If scraping fails, an error embed is posted to the report channel. Admins can retry with <code className="text-fg-soft font-mono">/force_check</code>.</Note>
           <Note>Fan counts are <strong className="text-fg-soft">monthly totals</strong>, not lifetime. Uma.moe resets them each month and the bot tracks from 0.</Note>
@@ -33,16 +33,16 @@ export default function GuidePage() {
 
       {/* ── Scenarios ─────────────────────────────────────────────── */}
       <div>
-        <p className="text-[11px] font-semibold text-fg-subtle uppercase tracking-widest mb-3">Scenarios</p>
+        <h2 className="mb-3 text-[15px] font-semibold text-fg">Scenarios</h2>
         <div className="space-y-4">
 
           {/* New member joins mid-month */}
           <Card icon={UserPlus} title="New member joins mid-month" badge="Common">
             <NewMemberVisual />
             <ul className="mt-4 space-y-2">
-              <Li>The bot auto-detects the member&apos;s join date from Uma.moe — no manual setup needed.</Li>
+              <Li>The bot auto-detects the member&apos;s join date from Uma.moe, no manual setup needed.</Li>
               <Li>Quota is calculated <em>from the join date forward</em>, not from day 1 of the month.</Li>
-              <Li>On their first day they&apos;ll appear as <Pill color="zinc">+0</Pill> — the pro-rata expectation equals what they have on day one.</Li>
+              <Li>On their first day they&apos;ll appear as <Pill color="zinc">+0</Pill>, because the pro-rata expectation equals what they have on day one.</Li>
               <Li>The bomb cannot trigger until they are behind for <strong className="text-fg-soft">3 consecutive days</strong>, so there is a natural buffer when settling in.</Li>
             </ul>
           </Card>
@@ -51,10 +51,10 @@ export default function GuidePage() {
           <Card icon={Bomb} title="Member falls behind quota" badge="Bomb system" badgeColor="red">
             <BombLifecycle />
             <ul className="mt-4 space-y-2">
-              <Li>Being behind for one or two days does <em>not</em> trigger a bomb — three <strong className="text-fg-soft">consecutive</strong> days are required.</Li>
+              <Li>Being behind for one or two days does <em>not</em> trigger a bomb. Three <strong className="text-fg-soft">consecutive</strong> days are required.</Li>
               <Li>The countdown ticks down by one day every daily scrape, regardless of activity.</Li>
-              <Li>Recovery deactivates the bomb <strong className="text-fg-soft">immediately</strong> — the moment daily surplus flips to ≥ 0, the bomb is cleared.</Li>
-              <Li>When the countdown hits 0 and the member is still behind, a kick alert is posted to the alert channel. Admins kick manually — the bot never auto-kicks.</Li>
+              <Li>Recovery deactivates the bomb <strong className="text-fg-soft">immediately</strong>: the moment daily surplus flips to ≥ 0, the bomb is cleared.</Li>
+              <Li>When the countdown hits 0 and the member is still behind, a kick alert is posted to the alert channel. Admins kick manually. The bot never auto-kicks.</Li>
             </ul>
           </Card>
 
@@ -62,7 +62,7 @@ export default function GuidePage() {
           <Card icon={RefreshCw} title="Monthly reset" badge="Automatic" badgeColor="violet">
             <MonthlyResetVisual />
             <ul className="mt-4 space-y-2">
-              <Li>Uma.moe resets all member fan counts at the start of each month — this is expected behaviour.</Li>
+              <Li>Uma.moe resets all member fan counts at the start of each month. This is expected behaviour.</Li>
               <Li>The bot detects this automatically: if a member&apos;s count drops below 50% of their previous value, a reset is assumed.</Li>
               <Li>On reset: all quota history, active bombs, and mid-month quota changes are cleared. Everyone starts fresh from 0.</Li>
               <Li>The first scrape of the new month creates a new baseline for all members.</Li>
@@ -74,9 +74,9 @@ export default function GuidePage() {
             <LeaveRejoinVisual />
             <ul className="mt-4 space-y-2">
               <Li>If a member is missing from the Uma.moe scrape they are automatically deactivated and hidden from reports.</Li>
-              <Li>If they reappear in a future scrape they are reactivated — their join date is reset to <strong className="text-fg-soft">today</strong>.</Li>
+              <Li>If they reappear in a future scrape they are reactivated and their join date is reset to <strong className="text-fg-soft">today</strong>.</Li>
               <Li>This means their quota history resets as if they are brand new. Any previous deficit does not carry over.</Li>
-              <Li>Members manually deactivated by an admin <em>cannot</em> auto-rejoin — an admin must reactivate them explicitly.</Li>
+              <Li>Members manually deactivated by an admin <em>cannot</em> auto-rejoin. An admin must reactivate them explicitly.</Li>
             </ul>
           </Card>
 
@@ -85,9 +85,9 @@ export default function GuidePage() {
             <QuotaChangeVisual />
             <ul className="mt-4 space-y-2">
               <Li>You can add a quota change at any point via <strong className="text-fg-soft">Settings → Quota changes</strong>.</Li>
-              <Li>Each day is calculated at the quota rate that was active <em>on that specific date</em> — days before the change are unaffected.</Li>
+              <Li>Each day is calculated at the quota rate that was active <em>on that specific date</em>, so days before the change are unaffected.</Li>
               <Li>Lowering quota mid-month can immediately bring members who were behind back to on-track status.</Li>
-              <Li>Multiple quota changes in a single month are supported — each date segment uses its own rate.</Li>
+              <Li>Multiple quota changes in a single month are supported. Each date segment uses its own rate.</Li>
             </ul>
           </Card>
 
@@ -275,7 +275,7 @@ function MonthlyResetVisual() {
           {['Quota history', 'Active bombs', 'Quota changes'].map(l => (
             <div key={l} className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-fg-muted">{l}</span>
-              <span className="text-[11px] text-fg-subtle font-mono">stored</span>
+              <span className="text-[11px] text-fg-subtle">stored</span>
             </div>
           ))}
         </div>
@@ -293,7 +293,7 @@ function MonthlyResetVisual() {
           {['Quota history', 'Active bombs', 'Quota changes'].map(l => (
             <div key={l} className="flex items-center justify-between gap-2">
               <span className="text-[11px] text-fg-muted line-through">{l}</span>
-              <span className="text-[11px] text-brand font-mono">cleared</span>
+              <span className="text-[11px] text-brand">cleared</span>
             </div>
           ))}
         </div>
@@ -366,9 +366,9 @@ function QuotaChangeVisual() {
         ))}
       </div>
       <div className="mt-1.5 flex items-center justify-between text-[10px] text-fg-subtle">
-        <span>Days 1–{oldDays} &mdash; original rate</span>
+        <span>Days 1-{oldDays}: original rate</span>
         <span className="text-warn/80">↑ quota raised day {oldDays + 1}</span>
-        <span>Days {oldDays + 1}–31 &mdash; new rate</span>
+        <span>Days {oldDays + 1}-31: new rate</span>
       </div>
     </div>
   )

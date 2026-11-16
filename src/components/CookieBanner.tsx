@@ -24,7 +24,7 @@ export default function CookieBanner() {
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg mx-auto px-4">
       <div className="flex items-center gap-4 panel px-4 py-3.5 shadow-2xl">
         <p className="text-xs text-fg-muted leading-relaxed flex-1">
-          We use a single session cookie to keep you signed in — no tracking, no ads.{' '}
+          We use a single session cookie to keep you signed in. No tracking, no ads.{' '}
           <Link href="/privacy" className="text-brand hover:text-brand-strong transition-colors underline underline-offset-2">
             Privacy policy
           </Link>

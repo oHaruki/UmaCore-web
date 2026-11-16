@@ -9,7 +9,7 @@ import { signOut } from 'next-auth/react'
 import {
   LayoutGrid, UserRound, BookOpen, Gauge, Users, ArrowLeftRight, FileBarChart2, History,
   Bomb, Settings, ClipboardList, KeyRound, Sparkles, PlusCircle, ShieldAlert, Activity,
-  LogOut, Menu, X, Search, ChevronsUpDown, Check, LayoutDashboard, Palette,
+  LogOut, Menu, X, Search, ChevronsUpDown, Check, LayoutDashboard, Palette, Megaphone,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -83,6 +83,7 @@ export default function Sidebar({
   const general: NavItem[] = [
     { label: 'Overview', href: '/dashboard', icon: LayoutGrid },
     { label: 'My trainer', href: '/dashboard/me', icon: UserRound },
+    { label: 'Recruiting', href: '/dashboard/recruiting', icon: Megaphone },
   ]
   const club: NavItem[] = active
     ? [

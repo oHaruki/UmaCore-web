@@ -24,7 +24,7 @@ function isDiscordAdmin(session: { adminGuildIds?: string[] } | null, guildId: s
   return !!session?.adminGuildIds?.includes(guildId)
 }
 
-// GET — current manager roles for the guild + the guild's assignable roles
+// GET: current manager roles for the guild + the guild's assignable roles
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ guildId: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -46,7 +46,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ gui
   })
 }
 
-// POST — add a manager role  { role_id, role_name? }
+// POST: add a manager role  { role_id, role_name? }
 export async function POST(req: NextRequest, { params }: { params: Promise<{ guildId: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ gui
   return NextResponse.json({ ok: true })
 }
 
-// DELETE — remove a manager role  { role_id, role_name? }
+// DELETE: remove a manager role  { role_id, role_name? }
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ guildId: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

@@ -79,7 +79,7 @@ function actor(session: Session) {
   }
 }
 
-// GET — this club's bindings, the guild's channels, and the token vocabulary.
+// GET: this club's bindings, the guild's channels, and the token vocabulary.
 // With ?template=, returns just that template's preview, for typing feedback.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   })
 }
 
-// POST — bind a channel to a template  { channel_id, template }
+// POST: bind a channel to a template  { channel_id, template }
 //
 // Saves, then asks the bot to rename immediately: the scheduled paths run hourly
 // at best, and nobody should have to wait that long to see whether the template
@@ -199,7 +199,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   return NextResponse.json({
     ok: true,
     preview: check?.preview ?? null,
-    // null means the bot could not be reached — the binding is still saved and
+    // null means the bot could not be reached; the binding is still saved and
     // the next scheduled update will pick it up.
     refreshed: refresh,
     // What happened to *this* channel, rather than to the club as a whole.
@@ -208,7 +208,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   })
 }
 
-// PATCH — pause or resume a binding  { channel_id, enabled }
+// PATCH: pause or resume a binding  { channel_id, enabled }
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -239,7 +239,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return NextResponse.json({ ok: true, bindings: await bindings(id) })
 }
 
-// DELETE — stop tracking a channel  { channel_id }
+// DELETE: stop tracking a channel  { channel_id }
 //
 // The channel keeps whatever name it currently has: silently renaming it back to
 // something we never recorded would be a worse surprise than leaving it.

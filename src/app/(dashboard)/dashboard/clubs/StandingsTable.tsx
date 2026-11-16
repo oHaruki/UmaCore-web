@@ -107,7 +107,7 @@ export default function StandingsTable({ rows }: { rows: StandingRow[] }) {
                 <td className="hidden md:table-cell">
                   {m.days_behind > 0
                     ? <span className="num text-warn">{m.days_behind}d</span>
-                    : <span className="text-fg-subtle">–</span>}
+                    : <span className="text-fg-subtle">-</span>}
                 </td>
               </tr>
             ))}

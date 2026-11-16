@@ -1,6 +1,6 @@
-export const metadata = { title: 'Privacy Policy — UmaCore' }
+export const metadata = { title: 'Privacy Policy | UmaCore' }
 
-const LAST_UPDATED = 'April 28, 2026'
+const LAST_UPDATED = 'November 16, 2026'
 const CONTACT_EMAIL = 'intranetzosu@gmail.com'
 
 export default function PrivacyPage() {
@@ -10,8 +10,7 @@ export default function PrivacyPage() {
 
         {/* Header */}
         <div>
-          <span className="text-xs text-violet-400 font-medium uppercase tracking-wider">Legal</span>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Privacy Policy</h1>
+          <h1 className="text-2xl font-semibold text-white">Privacy Policy</h1>
           <p className="mt-1 text-xs text-zinc-500">Last updated: {LAST_UPDATED}</p>
         </div>
 
@@ -24,12 +23,12 @@ export default function PrivacyPage() {
         <Section title="1. Who is responsible for your data?">
           <p>
             UmaCore is operated by Haruki. You can contact us at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-violet-400 hover:text-violet-300 transition-colors">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:text-brand-strong transition-colors">
               {CONTACT_EMAIL}
             </a>
             {' '}or via our{' '}
             <a href="https://discord.gg/f4QZNag9Hv" target="_blank" rel="noopener noreferrer"
-              className="text-violet-400 hover:text-violet-300 transition-colors">
+              className="text-brand hover:text-brand-strong transition-colors">
               Discord server
             </a>.
           </p>
@@ -50,7 +49,7 @@ export default function PrivacyPage() {
               ].map(([item, reason]) => (
                 <li key={item} className="flex gap-3">
                   <span className="mt-1 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
-                  <span><span className="text-zinc-200 font-medium">{item}</span> — {reason}</span>
+                  <span><span className="text-zinc-200 font-medium">{item}</span>: {reason}</span>
                 </li>
               ))}
             </ul>
@@ -79,9 +78,21 @@ export default function PrivacyPage() {
               ))}
             </ul>
             <p className="mt-3">
-              This data is operational — it is required to provide the quota tracking
+              This data is operational. It is required to provide the quota tracking
               service. The legal basis is <strong className="text-zinc-200">legitimate interest</strong>{' '}
               (GDPR Art. 6(1)(f)) in operating the dashboard for club administrators.
+            </p>
+          </SubSection>
+
+          <SubSection title="Recruiting posts (only if you post one)">
+            <p>
+              Posts on the public recruiting board are visible to anyone. A trainer&apos;s
+              LFC post shows the Discord display name, avatar and a link to message that
+              account, the in-game trainer ID and name, what was written in the post, and
+              public stats for that trainer ID from uma.moe, refreshed about once a day.
+              A club listing shows what its leaders wrote, any uploaded artwork, and the
+              club&apos;s own quota statistics. You can edit or remove your post at any
+              time from the Recruiting page of the dashboard, and removing it deletes it.
             </p>
           </SubSection>
 
@@ -121,12 +132,13 @@ export default function PrivacyPage() {
           </p>
           <ul className="mt-3 space-y-2">
             {[
-              ['Discord', 'OAuth provider — subject to Discord\'s own Privacy Policy'],
-              ['Hosting / database provider', 'Our server and database infrastructure; data is processed in accordance with GDPR data-processing agreements'],
+              ['Discord', 'OAuth provider, subject to Discord\'s own Privacy Policy'],
+              ['uma.moe', 'Trainer IDs posted on the recruiting board are looked up there to show that trainer\'s public stats'],
+              ['Hosting / database provider','Our server and database infrastructure; data is processed in accordance with GDPR data-processing agreements'],
             ].map(([party, note]) => (
               <li key={party} className="flex gap-3">
                 <span className="mt-1 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
-                <span><span className="text-zinc-200 font-medium">{party}</span> — {note}</span>
+                <span><span className="text-zinc-200 font-medium">{party}</span>: {note}</span>
               </li>
             ))}
           </ul>
@@ -135,7 +147,8 @@ export default function PrivacyPage() {
         <Section title="5. Data retention">
           <p>
             Session tokens expire after 30 days of inactivity. Quota and club data
-            is retained for as long as your club remains active on UmaCore. You may
+            is retained for as long as your club remains active on UmaCore. Recruiting
+            posts are kept until you remove them; ones not bumped for 30 days are hidden. You may
             request deletion at any time (see Section 6).
           </p>
         </Section>
@@ -153,13 +166,13 @@ export default function PrivacyPage() {
             ].map(([right, desc]) => (
               <li key={right} className="flex gap-3">
                 <span className="mt-1 w-1 h-1 rounded-full bg-zinc-600 shrink-0" />
-                <span><span className="text-zinc-200 font-medium">{right}</span> — {desc}</span>
+                <span><span className="text-zinc-200 font-medium">{right}</span>: {desc}</span>
               </li>
             ))}
           </ul>
           <p className="mt-4">
             To exercise any of these rights, contact us at{' '}
-            <a href={`mailto:${CONTACT_EMAIL}`} className="text-violet-400 hover:text-violet-300 transition-colors">
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-brand hover:text-brand-strong transition-colors">
               {CONTACT_EMAIL}
             </a>. We will respond within 30 days.
           </p>
@@ -197,7 +210,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function SubSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="pl-4 border-l border-white/8 space-y-2">
-      <p className="text-xs font-medium text-zinc-300 uppercase tracking-wide">{title}</p>
+      <p className="text-[13px] font-medium text-zinc-200">{title}</p>
       <div className="text-sm text-zinc-400 leading-relaxed">{children}</div>
     </div>
   )

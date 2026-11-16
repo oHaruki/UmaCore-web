@@ -22,14 +22,14 @@ export async function PATCH(
   // scrape_url is NOT NULL, clearing it in settings sends null
   if ('scrape_url' in body && !body.scrape_url) body.scrape_url = ''
 
-  // Must match the bot's vocabulary exactly — quota_calculator.py silently treats an
+  // Must match the bot's vocabulary exactly: quota_calculator.py silently treats an
   // unrecognised period as daily, so a typo here understates a club's quota all month.
   if ('quota_period' in body && !['daily', 'weekly', 'biweekly'].includes(body.quota_period)) {
     return NextResponse.json({ error: 'quota_period must be one of: daily, weekly, biweekly' }, { status: 400 })
   }
 
   if (body.circle_id && !/^\d+$/.test(String(body.circle_id))) {
-    return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
+    return NextResponse.json({ error: 'circle_id must be numeric. Copy the number from the uma.moe circle URL' }, { status: 400 })
   }
 
   if ('days_behind_mode' in body && !['streak', 'quota'].includes(body.days_behind_mode)) {

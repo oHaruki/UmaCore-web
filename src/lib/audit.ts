@@ -24,6 +24,6 @@ export async function logAudit(params: {
       ]
     )
   } catch {
-    // non-blocking — audit failure must never break the main operation
+    // non-blocking: audit failure must never break the main operation
   }
 }

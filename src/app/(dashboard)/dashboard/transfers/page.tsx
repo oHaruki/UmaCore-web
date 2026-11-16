@@ -134,7 +134,7 @@ export default async function TransfersPage({
                       <p className="text-fg-muted">{r.discord_name}</p>
                       <p className="num text-xs text-fg-subtle">{r.discord_user_id}</p>
                     </td>
-                    <td className="hidden text-fg-muted sm:table-cell">{r.from_club_name ?? '–'}</td>
+                    <td className="hidden text-fg-muted sm:table-cell">{r.from_club_name ?? '-'}</td>
                     {isQueue ? (
                       <>
                         <td className="hidden text-fg-muted sm:table-cell">{waitingFor(r.created_at)}</td>
@@ -149,7 +149,7 @@ export default async function TransfersPage({
                           {r.decision_note && <p className="mt-1.5 max-w-xs text-xs text-fg-muted">{r.decision_note}</p>}
                         </td>
                         <td className="hidden md:table-cell">
-                          <p className="text-fg-muted">{r.decided_by_name ?? '–'}</p>
+                          <p className="text-fg-muted">{r.decided_by_name ?? '-'}</p>
                           {r.decided_at && <p className="num text-xs text-fg-subtle">{new Date(r.decided_at).toLocaleDateString()}</p>}
                         </td>
                       </>

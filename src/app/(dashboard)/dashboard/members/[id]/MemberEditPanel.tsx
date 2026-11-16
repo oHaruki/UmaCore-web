@@ -88,13 +88,13 @@ export default function MemberEditPanel({
           <div>
             <dt className="text-xs text-fg-subtle">Last seen</dt>
             <dd className="num mt-0.5 text-[13px] text-fg-soft">
-              {lastSeen ? new Date(lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '–'}
+              {lastSeen ? new Date(lastSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-fg-subtle">Deactivation</dt>
             <dd className={`mt-0.5 text-[13px] ${manuallyDeactivated ? 'text-warn' : 'text-fg-soft'}`}>
-              {manuallyDeactivated ? 'Manually deactivated' : '–'}
+              {manuallyDeactivated ? 'Manually deactivated' : '-'}
             </dd>
           </div>
         </dl>

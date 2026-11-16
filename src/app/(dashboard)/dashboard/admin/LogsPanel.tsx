@@ -89,7 +89,7 @@ export default function LogsPanel() {
   return (
     <section>
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-fg-muted uppercase tracking-wider">
+        <h2 className="text-sm font-semibold text-fg">
           Bot Logs
           {totalInFile != null && (
             <span className="ml-2 text-fg-subtle font-normal normal-case">

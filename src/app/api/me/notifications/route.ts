@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import { query } from '@/lib/db'
 
 /**
- * Update the signed-in user's own DM preferences — the same two flags
+ * Update the signed-in user's own DM preferences, the same two flags
  * `/notification_settings` writes. The row is found by the session's Discord ID,
  * so nobody can reach another person's link from here. The bot reads these per
  * notification, so a change applies from the next report with no bot call.
@@ -37,7 +37,7 @@ export async function PATCH(req: NextRequest) {
     vals
   )
   if (!rows.length)
-    return NextResponse.json({ error: 'No linked trainer — use /link_trainer in Discord first' }, { status: 404 })
+    return NextResponse.json({ error: 'No linked trainer. Use /link_trainer in Discord first' }, { status: 404 })
 
   return NextResponse.json({ ok: true })
 }

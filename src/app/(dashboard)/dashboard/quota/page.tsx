@@ -122,7 +122,7 @@ export default async function QuotaPage({
         <Stat label="Members tracked" value={board.length} />
         <Stat
           label={month === months[0] ? 'On track now' : 'On track at month end'}
-          value={pct !== null ? `${pct}%` : '–'}
+          value={pct !== null ? `${pct}%` : '-'}
           tone={pct === null ? 'neutral' : pct >= 80 ? 'good' : 'warn'}
           hint={`${onTrack} of ${board.length}`}
         />
@@ -193,7 +193,7 @@ export default async function QuotaPage({
                         </div>
                       </td>
                       <td className={`num hidden text-right md:table-cell ${Number(r.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>
-                        {Number(r.days_behind) > 0 ? `${r.days_behind}d` : '–'}
+                        {Number(r.days_behind) > 0 ? `${r.days_behind}d` : '-'}
                       </td>
                     </tr>
                   )
@@ -267,9 +267,9 @@ async function TrainerMonth({
         <>
           <StatStrip>
             <Stat label="Fans this month" value={formatFans(Number(last.cumulative_fans))} />
-            <Stat label="Surplus" value={surplus !== null ? formatDelta(surplus) : '–'} tone={surplus !== null && surplus >= 0 ? 'good' : 'warn'} />
+            <Stat label="Surplus" value={surplus !== null ? formatDelta(surplus) : '-'} tone={surplus !== null && surplus >= 0 ? 'good' : 'warn'} />
             <Stat label="Checks on track" value={`${onTrack} of ${rows.length}`} tone={onTrack === rows.length ? 'good' : 'neutral'} />
-            <Stat label="Days behind at last check" value={Number(last.days_behind) > 0 ? last.days_behind : '–'} tone={Number(last.days_behind) > 0 ? 'warn' : 'neutral'} />
+            <Stat label="Days behind at last check" value={Number(last.days_behind) > 0 ? last.days_behind : '-'} tone={Number(last.days_behind) > 0 ? 'warn' : 'neutral'} />
           </StatStrip>
 
           {rows.length >= 2 && (
@@ -300,7 +300,7 @@ async function TrainerMonth({
                         <td className="num hidden text-right text-fg-subtle sm:table-cell">{formatFans(Number(r.expected_fans))}</td>
                         <td className={`num text-right font-medium ${val >= 0 ? 'text-good' : 'text-warn'}`}>{formatDelta(val)}</td>
                         <td className={`num text-right ${Number(r.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>
-                          {Number(r.days_behind) > 0 ? `${r.days_behind}d` : '–'}
+                          {Number(r.days_behind) > 0 ? `${r.days_behind}d` : '-'}
                         </td>
                       </tr>
                     )

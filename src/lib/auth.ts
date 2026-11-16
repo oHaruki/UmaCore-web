@@ -21,7 +21,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, account }) {
       if (account?.access_token) {
-        // Store the real Discord snowflake ID — token.sub is a NextAuth UUID, not the Discord ID
+        // Store the real Discord snowflake ID; token.sub is a NextAuth UUID, not the Discord ID
         token.discordId = account.providerAccountId
         let guilds: Array<{ id: string; name: string; permissions: string }> = []
         try {
@@ -37,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         // Resolve the user's roles, but only for guilds that actually have club-editor
-        // bindings AND that the user belongs to — this bounds the number of Discord
+        // bindings AND that the user belongs to. This bounds the number of Discord
         // member lookups to the handful of guilds where roles can matter.
         const guildRoles: Record<string, string[]> = {}
         try {
@@ -67,7 +67,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             }
           }
         } catch {
-          // db unavailable at login — no editor roles resolved, admins still work
+          // db unavailable at login: no editor roles resolved, admins still work
         }
         token.guildRoles = guildRoles
       }

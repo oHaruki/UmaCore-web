@@ -36,7 +36,7 @@ export async function GET(_req: NextRequest) {
           display: 'flex',
         }} />
 
-        {/* Horse girl image — right side */}
+        {/* Horse girl image, right side */}
         <img
           src={`${base}/images/UmaViewer_2026-04-26_17-29-26-620.png`}
           style={{
@@ -90,7 +90,7 @@ export async function GET(_req: NextRequest) {
             margin: 0, marginBottom: '48px',
             maxWidth: '480px',
           }}>
-            Quota tracking, member management, and reports — all in one dashboard for Uma Musume club admins.
+            Quota tracking, member management, and reports, all in one dashboard for Uma Musume club admins.
           </p>
 
           {/* Feature pills */}

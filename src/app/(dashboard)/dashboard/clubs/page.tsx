@@ -242,7 +242,7 @@ export default async function ClubOverviewPage({
           hint={`${onTrack} of ${totalActive}`}
         />
         <Stat label="Average surplus" value={formatDelta(avgSurplus)} tone={avgSurplus >= 0 ? 'good' : 'warn'} />
-        <Stat label="Club rank" value={club.latest_rank ? `#${Number(club.latest_rank).toLocaleString('en-US')}` : '–'} />
+        <Stat label="Club rank" value={club.latest_rank ? `#${Number(club.latest_rank).toLocaleString('en-US')}` : '-'} />
         <Stat label="Active bombs" value={activeBombs} tone={activeBombs > 0 ? 'bad' : 'neutral'} />
       </StatStrip>
 
@@ -378,7 +378,7 @@ export default async function ClubOverviewPage({
                 { label: 'Active', value: bombStats.active_bombs, tone: activeBombs > 0 ? 'text-bad' : undefined },
                 { label: 'Resolved', value: bombStats.resolved_bombs },
                 { label: 'Members affected', value: bombStats.members_bombed_ever },
-                { label: 'Average to resolve', value: bombStats.avg_duration ? `${bombStats.avg_duration} days` : '–' },
+                { label: 'Average to resolve', value: bombStats.avg_duration ? `${bombStats.avg_duration} days` : '-' },
               ].map(({ label, value, tone }) => (
                 <div key={label}>
                   <dt className="text-xs text-fg-subtle">{label}</dt>

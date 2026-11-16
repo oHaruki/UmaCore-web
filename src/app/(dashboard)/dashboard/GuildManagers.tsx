@@ -96,7 +96,7 @@ export default function GuildManagers({ guildId }: { guildId: string }) {
       <div className="px-5 py-4 space-y-4">
         <p className="text-xs text-fg-muted leading-relaxed">
           Anyone with one of these roles can manage <span className="text-fg-muted">every</span> club
-          in this server — create, edit, delete, and assign club editors — like a Discord admin.
+          in this server (create, edit, delete, and assign club editors), like a Discord admin.
           They <span className="text-fg-muted">cannot</span> assign manager roles (admins only).
         </p>
 
@@ -116,7 +116,7 @@ export default function GuildManagers({ guildId }: { guildId: string }) {
           <>
             <div className="flex flex-wrap gap-2">
               {state.managers.length === 0 && (
-                <span className="text-xs text-fg-subtle">No manager roles — only Discord admins manage all clubs.</span>
+                <span className="text-xs text-fg-subtle">No manager roles yet. Only Discord admins manage all clubs.</span>
               )}
               {state.managers.map(id => {
                 const role = roleById(id)

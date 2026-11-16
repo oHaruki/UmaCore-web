@@ -98,7 +98,7 @@ export default async function AuditLogPage() {
   }
 
   // Guild-scoped actions (manager roles, club deletion) have no club_id to hang
-  // off — they're matched on details.guild_id so they show on every club page in
+  // off, so they're matched on details.guild_id so they show on every club page in
   // that server rather than being invisible everywhere.
   const logs = await query<LogEntry>(`
     SELECT
@@ -144,7 +144,7 @@ export default async function AuditLogPage() {
                     <p className="text-[11px] text-fg-subtle">{ts.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</p>
                   </div>
 
-                  {/* Actor — entries without a source tag predate command logging and came from the dashboard */}
+                  {/* Actor: entries without a source tag predate command logging and came from the dashboard */}
                   <div className="shrink-0 w-28">
                     <p className="text-xs text-fg-soft truncate">{log.actor_name}</p>
                     <p className="text-[11px] text-fg-subtle">{viaDiscord ? 'via command' : 'via dashboard'}</p>

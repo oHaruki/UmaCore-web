@@ -36,7 +36,7 @@ export async function POST(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ club_id: clubId }),
-      signal: AbortSignal.timeout(300000), // 5 min — large backfills can take a while
+      signal: AbortSignal.timeout(300000), // 5 min, large backfills can take a while
     })
     const text = await res.text()
     let data: Record<string, unknown> = {}

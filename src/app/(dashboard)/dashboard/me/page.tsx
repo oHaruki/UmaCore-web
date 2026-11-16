@@ -124,7 +124,7 @@ export default async function MyTrainerPage() {
   }
 
   const [history, bomb, standing] = await Promise.all([
-    // quota_history keeps every month, and cumulative_fans restarts each one — so
+    // quota_history keeps every month, and cumulative_fans restarts each one, so
     // only the latest month belongs on one chart.
     query<HistoryEntry>(`
       SELECT date::text, cumulative_fans::text, expected_fans::text,
@@ -274,7 +274,7 @@ export default async function MyTrainerPage() {
           <div className="p-6">
             <p className="text-[13px] text-fg-muted">Place in club</p>
             <p className="num mt-1 font-display text-[40px] font-semibold leading-none tracking-[-0.03em] text-fg">
-              {standing ? `#${standing.pos}` : '–'}
+              {standing ? `#${standing.pos}` : '-'}
             </p>
             <p className="mt-1.5 text-xs text-fg-subtle">{standing ? `of ${standing.total} by fans this month` : 'Shows after the next check'}</p>
           </div>
@@ -300,13 +300,13 @@ export default async function MyTrainerPage() {
           />
           <Stat
             label="Your recent pace"
-            value={stats.pace !== null ? formatFans(Math.round(stats.pace)) : '–'}
+            value={stats.pace !== null ? formatFans(Math.round(stats.pace)) : '-'}
             tone={stats.pace === null ? 'neutral' : stats.pace >= (stats.catchUp ?? perDayQuota) ? 'good' : 'warn'}
             hint="per day, last 7 days"
           />
           <Stat
             label="Month-end projection"
-            value={stats.projected !== null ? formatFans(Math.round(stats.projected)) : '–'}
+            value={stats.projected !== null ? formatFans(Math.round(stats.projected)) : '-'}
             tone={stats.projected === null ? 'neutral' : stats.projected >= stats.target ? 'good' : 'warn'}
             hint={`Target ${formatFans(Math.round(stats.target))}`}
           />

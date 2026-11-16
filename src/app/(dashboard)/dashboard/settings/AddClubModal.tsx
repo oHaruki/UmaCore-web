@@ -6,7 +6,7 @@ import { signIn } from 'next-auth/react'
 import { Plus } from 'lucide-react'
 import Modal, { Field, Switch } from '@/components/dash/Modal'
 
-// Values must match the bot exactly — services/quota_calculator.py looks the period
+// Values must match the bot exactly: services/quota_calculator.py looks the period
 // up in {'daily': 1, 'weekly': 7, 'biweekly': 14} and silently falls back to daily
 // on anything else, so a mismatch here quietly turns a 14-day quota into a daily one.
 const PERIODS = [

@@ -5,7 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { getBotGuildIds } from '@/lib/bot-guilds'
 import { effectiveAdminGuildIds } from '@/lib/guild-check'
 
-// Must match the bot's vocabulary exactly — quota_calculator.py silently treats an
+// Must match the bot's vocabulary exactly: quota_calculator.py silently treats an
 // unrecognised period as daily, so a typo here understates a club's quota all month.
 const QUOTA_PERIODS = ['daily', 'weekly', 'biweekly']
 
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
   // The bot rejects a non-numeric circle_id, so reject it here rather than storing
   // a club that can never scrape.
   if (circle_id && !/^\d+$/.test(String(circle_id))) {
-    return NextResponse.json({ error: 'circle_id must be numeric — copy the number from the uma.moe circle URL' }, { status: 400 })
+    return NextResponse.json({ error: 'circle_id must be numeric. Copy the number from the uma.moe circle URL' }, { status: 400 })
   }
 
   if (quota_period && !QUOTA_PERIODS.includes(quota_period)) {
@@ -38,13 +38,13 @@ export async function POST(req: NextRequest) {
   }
   const effAdmin = await effectiveAdminGuildIds(session)
   if (!effAdmin.includes(guildIdStr))
-    return NextResponse.json({ error: 'Forbidden — you are not an admin or manager of that server' }, { status: 403 })
+    return NextResponse.json({ error: 'Forbidden: you are not an admin or manager of that server' }, { status: 403 })
 
   // The bot must actually be in the server, or the club can't function.
   // (If the bot is unreachable we can't verify, so we allow it through.)
   const botGuildIds = await getBotGuildIds()
   if (botGuildIds && !botGuildIds.includes(guildIdStr))
-    return NextResponse.json({ error: 'The bot is not in that server — invite it first' }, { status: 400 })
+    return NextResponse.json({ error: 'The bot is not in that server. Invite it first' }, { status: 400 })
 
   const result = await query<{ club_id: string }>(`
     INSERT INTO clubs (

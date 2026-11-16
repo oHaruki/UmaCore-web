@@ -158,13 +158,13 @@ export default async function MemberProfilePage({
       <StatStrip>
         <Stat
           label="Surplus"
-          value={latestSurplus !== null ? formatDelta(latestSurplus) : '–'}
+          value={latestSurplus !== null ? formatDelta(latestSurplus) : '-'}
           tone={latestSurplus === null ? 'neutral' : latestSurplus >= 0 ? 'good' : 'warn'}
           hint={latest ? `as of ${formatDay(latest.date)}` : undefined}
         />
         <Stat
           label={monthName ? `Fans in ${monthLabel(month!, { month: 'long' })}` : 'Fans this month'}
-          value={latest ? formatFans(Number(latest.cumulative_fans)) : '–'}
+          value={latest ? formatFans(Number(latest.cumulative_fans)) : '-'}
         />
         <Stat
           label={catchUpPerDay ? 'Needed per day to recover' : 'Daily target'}
@@ -173,7 +173,7 @@ export default async function MemberProfilePage({
         />
         <Stat
           label="Checks on track"
-          value={total ? `${Math.round((onTrack / total) * 100)}%` : '–'}
+          value={total ? `${Math.round((onTrack / total) * 100)}%` : '-'}
           hint={total ? `${onTrack} of ${total} this month` : undefined}
           tone={total ? (onTrack === total ? 'good' : 'neutral') : 'neutral'}
         />
@@ -232,7 +232,7 @@ export default async function MemberProfilePage({
                         <td className="num hidden text-right text-fg-subtle sm:table-cell">{formatFans(Number(h.expected_fans))}</td>
                         <td className={`num text-right font-medium ${val >= 0 ? 'text-good' : 'text-warn'}`}>{formatDelta(val)}</td>
                         <td className={`num text-right ${Number(h.days_behind) > 0 ? 'text-warn' : 'text-fg-subtle'}`}>
-                          {Number(h.days_behind) > 0 ? `${h.days_behind}d` : '–'}
+                          {Number(h.days_behind) > 0 ? `${h.days_behind}d` : '-'}
                         </td>
                       </tr>
                     )
