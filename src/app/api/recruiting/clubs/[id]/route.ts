@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth'
 import { query, queryOne } from '@/lib/db'
 import { ownsClub } from '@/lib/guild-check'
 import { logAudit } from '@/lib/audit'
+import { botApiFetch } from '@/lib/bot-api'
 import { UUID_RE } from '@/lib/recruiting'
 import {
   ACCENTS, BUMP_HOURS, LIMITS, MAX_LANGUAGES, parseLanguages, TAGS, normalizeInvite,
@@ -97,6 +98,12 @@ export async function PUT(req: NextRequest, ctx: Ctx) {
   if (prev?.banner_image_id && prev.banner_image_id !== banner) {
     await query('DELETE FROM recruit_images WHERE image_id = $1::uuid', [prev.banner_image_id]).catch(() => {})
   }
+
+  // fresh uma.moe numbers right away; the bot retries every few hours if this misses
+  await botApiFetch('/recruit/club', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ club_id: id }), signal: AbortSignal.timeout(20_000),
+  }).catch(() => {})
 
   await logAudit({
     actorId: session.user.id, actorName: session.user.name ?? 'unknown',

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { getClubPost, UUID_RE } from '@/lib/recruiting'
 import { formatDay, formatFans, timeAgo } from '@/lib/format'
-import { CLUB_SLOTS, periodWord, quotaPerDay } from '@/lib/recruiting-shared'
+import { CLUB_SLOTS, clubPostPath, periodWord, quotaPerDay } from '@/lib/recruiting-shared'
 import { Stat, StatStrip } from '@/components/dash/ui'
 import { ClubBanner, GradeBadge, Monogram, Tags, clubFacts, imageUrl } from '@/components/recruiting/cards'
 import CopyButton from '@/components/recruiting/CopyButton'
@@ -15,7 +15,6 @@ type Props = { params: Promise<{ id: string }> }
 const SITE_URL = process.env.NEXTAUTH_URL ?? 'https://umacore.app'
 
 async function load(id: string) {
-  if (!UUID_RE.test(id)) return null
   return getClubPost(id).catch(() => null)
 }
 
@@ -38,6 +37,8 @@ export default async function ClubListingPage({ params }: Props) {
   const { id } = await params
   const club = await load(id)
   if (!club) notFound()
+  // old uuid links move to the circle ID
+  if (UUID_RE.test(id) && club.circle_id) permanentRedirect(clubPostPath(club))
 
   const { grade, open, avg, onTrackPct } = clubFacts(club)
   const perDay = quotaPerDay(club.quota, club.quota_period)
@@ -72,7 +73,7 @@ export default async function ClubListingPage({ params }: Props) {
                 Live standings <ExternalLink size={14} strokeWidth={1.75} />
               </Link>
             )}
-            <CopyButton value={`${SITE_URL}/recruiting/clubs/${club.club_id}`} label="Copy link" className="btn btn-ghost" />
+            <CopyButton value={`${SITE_URL}${clubPostPath(club)}`} label="Copy link" className="btn btn-ghost" />
           </div>
         </div>
       </section>
@@ -119,7 +120,9 @@ export default async function ClubListingPage({ params }: Props) {
             </dl>
           </section>
           <div className="space-y-1 px-1 text-xs text-fg-subtle">
-            {club.latest_date && <p>Stats from the {formatDay(club.latest_date)} scrape</p>}
+            {club.stats_at
+              ? <p>Stats from uma.moe, updated {timeAgo(club.stats_at)}</p>
+              : club.latest_date && <p>Stats from the {formatDay(club.latest_date)} scrape</p>}
             <p>Listing updated {timeAgo(club.updated_at)}</p>
           </div>
         </aside>

@@ -121,6 +121,7 @@ export type TrainerStats = {
 export type ClubListing = {
   club_id: string
   club_name: string
+  circle_id: string | null
   headline: string
   description: string
   discord_invite: string | null
@@ -140,6 +141,8 @@ export type ClubListing = {
   bombs_enabled: boolean
   members: number
   club_rank: number | null
+  daily_avg: number | null
+  stats_at: string | null
   latest_date: string | null
   total_fans: number | null
   tracked: number
@@ -175,12 +178,19 @@ export function quotaPerDay(quota: number, period: string) {
   return period === 'weekly' ? quota / 7 : period === 'biweekly' ? quota / 14 : quota
 }
 
-/** Average monthly fans per tracked member per day, up to the latest scrape. */
-export function clubDailyAvg(c: Pick<ClubListing, 'total_fans' | 'tracked' | 'latest_date'>): number | null {
+/** Fans per member per day this month: the uma.moe snapshot, else the latest scrape. */
+export function clubDailyAvg(c: Pick<ClubListing, 'daily_avg' | 'total_fans' | 'tracked' | 'latest_date'>): number | null {
+  if (c.daily_avg) return Math.round(c.daily_avg)
   if (!c.total_fans || !c.tracked || !c.latest_date) return null
   const day = Number(c.latest_date.slice(8, 10))
   return day > 0 ? Math.round(c.total_fans / c.tracked / day) : null
 }
+
+/** Public link for a club listing: its circle ID, like /club/<id>. */
+export const clubPostPath = (c: Pick<ClubListing, 'circle_id' | 'club_id'>) =>
+  `/recruiting/clubs/${c.circle_id ?? c.club_id}`
+
+export const playerPostPath = (p: Pick<PlayerListing, 'trainer_id'>) => `/recruiting/players/${p.trainer_id}`
 
 export function bumpReadyAt(bumpedAt: string): Date {
   return new Date(new Date(bumpedAt).getTime() + BUMP_HOURS * 3_600_000)

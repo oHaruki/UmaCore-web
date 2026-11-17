@@ -2,11 +2,14 @@ import { query, queryOne } from './db'
 import { EFFECTIVE_QUOTA_SQL } from './quota'
 import { LISTED_DAYS, type ClubListing, type PlayerListing } from './recruiting-shared'
 
-// Club numbers come straight from the club's latest scrape, so a listing is
-// always as fresh as the daily report. Post columns are COALESCEd so the same
-// select also previews a club that has no listing yet.
+// Members, rank and average come from the bot's uma.moe snapshot
+// (recruit_club_stats), falling back to the club's own scrape data. The
+// snapshot is taken when the listing is saved, so it never waits on the daily
+// check. Post columns are COALESCEd so the same select also previews a club
+// that has no listing yet.
 const CLUB_COLUMNS = `
-  c.club_id::text, c.club_name, COALESCE(p.headline, '') AS headline,
+  c.club_id::text, c.club_name,
+  CASE WHEN c.circle_id ~ '^[0-9]+$' THEN c.circle_id END AS circle_id, COALESCE(p.headline, '') AS headline,
   COALESCE(p.description, '') AS description, p.discord_invite,
   COALESCE(p.discord_required, false) AS discord_required,
   p.min_daily_fans::float8 AS min_daily_fans, p.language,
@@ -15,11 +18,14 @@ const CLUB_COLUMNS = `
   COALESCE(p.bumped_at, NOW())::text AS bumped_at, COALESCE(p.updated_at, NOW())::text AS updated_at,
   CASE WHEN c.public_enabled THEN c.public_slug END AS public_slug,
   ${EFFECTIVE_QUOTA_SQL}::float8 AS quota, c.quota_period, c.bombs_enabled,
-  COALESCE(mem.members, 0) AS members, r.club_rank,
+  COALESCE((s.stats->>'members')::int, mem.members, 0) AS members,
+  COALESCE((s.stats->>'rank')::int, r.club_rank) AS club_rank,
+  (s.stats->>'daily_avg')::float8 AS daily_avg, s.updated_at::text AS stats_at,
   d.latest_date, d.total_fans, COALESCE(d.tracked, 0) AS tracked,
   COALESCE(d.on_track, 0) AS on_track
 `
 const CLUB_STATS_JOINS = `
+  LEFT JOIN recruit_club_stats s ON s.club_id = c.club_id
   LEFT JOIN LATERAL (
     SELECT COUNT(*)::int AS members FROM members m
     WHERE m.club_id = c.club_id AND m.is_active
@@ -65,9 +71,14 @@ export async function listPlayerPosts(): Promise<PlayerListing[]> {
   return query<PlayerListing>(`${PLAYER_SELECT} WHERE ${LISTED} ORDER BY p.bumped_at DESC LIMIT 300`)
 }
 
-/** A club's listing whether or not it is listed right now, for direct links. */
-export async function getClubPost(clubId: string): Promise<ClubListing | null> {
-  return queryOne<ClubListing>(`${CLUB_POSTS} WHERE p.club_id = $1::uuid AND c.is_active`, [clubId])
+/** A club's listing whether or not it is listed right now, by circle ID (or the old uuid links). */
+export async function getClubPost(key: string): Promise<ClubListing | null> {
+  if (UUID_RE.test(key))
+    return queryOne<ClubListing>(`${CLUB_POSTS} WHERE p.club_id = $1::uuid AND c.is_active`, [key])
+  if (!/^\d{1,20}$/.test(key)) return null
+  return queryOne<ClubListing>(
+    `${CLUB_POSTS} WHERE c.circle_id = $1 AND c.is_active ORDER BY p.bumped_at DESC LIMIT 1`, [key]
+  )
 }
 
 /** The club's listing for its editor, with live stats even before one exists. */
@@ -81,8 +92,14 @@ export async function getClubForEditor(clubId: string): Promise<(ClubListing & {
   )
 }
 
-export async function getPlayerPost(postId: string): Promise<PlayerListing | null> {
-  return queryOne<PlayerListing>(`${PLAYER_SELECT} WHERE p.post_id = $1::uuid`, [postId])
+/** An LFC post by trainer ID (or the old uuid links). If two accounts posted the
+ *  same ID, the one linked to that trainer wins, then whoever posted first. */
+export async function getPlayerPost(key: string): Promise<PlayerListing | null> {
+  if (UUID_RE.test(key)) return queryOne<PlayerListing>(`${PLAYER_SELECT} WHERE p.post_id = $1::uuid`, [key])
+  if (!/^\d{9,12}$/.test(key)) return null
+  return queryOne<PlayerListing>(
+    `${PLAYER_SELECT} WHERE p.trainer_id = $1 ORDER BY linked DESC, p.created_at LIMIT 1`, [key]
+  )
 }
 
 export async function getPlayerPostByDiscord(discordId: string): Promise<PlayerListing | null> {

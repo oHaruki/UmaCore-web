@@ -4,7 +4,7 @@ import { Suspense } from 'react'
 import { Search } from 'lucide-react'
 import { auth } from '@/lib/auth'
 import { listClubPosts, listPlayerPosts } from '@/lib/recruiting'
-import { CLUB_SLOTS, clubDailyAvg, gradeForRank, gradeIndex, isGrade, parseLanguages, tagLabel } from '@/lib/recruiting-shared'
+import { CLUB_SLOTS, clubDailyAvg, clubPostPath, playerPostPath, gradeForRank, gradeIndex, isGrade, parseLanguages, tagLabel } from '@/lib/recruiting-shared'
 import LinkTabs from '@/components/dash/LinkTabs'
 import { EmptyState } from '@/components/dash/ui'
 import { ClubRow, PlayerRow } from '@/components/recruiting/cards'
@@ -104,7 +104,7 @@ export default async function RecruitingPage({ searchParams }: { searchParams: P
       {tab === 'clubs' ? (
         clubs.length ? (
           <div className="rise space-y-3">
-            {clubs.map(c => <ClubRow key={c.club_id} club={c} href={`/recruiting/clubs/${c.club_id}`} />)}
+            {clubs.map(c => <ClubRow key={c.club_id} club={c} href={clubPostPath(c)} />)}
           </div>
         ) : (
           <div className="panel">
@@ -117,7 +117,7 @@ export default async function RecruitingPage({ searchParams }: { searchParams: P
         )
       ) : players.length ? (
         <div className="rise space-y-3">
-          {players.map(p => <PlayerRow key={p.post_id} player={p} href={`/recruiting/players/${p.post_id}`} />)}
+          {players.map(p => <PlayerRow key={p.post_id} player={p} href={playerPostPath(p)} />)}
         </div>
       ) : (
         <div className="panel">

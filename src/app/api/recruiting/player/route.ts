@@ -42,17 +42,19 @@ export async function PUT(req: NextRequest) {
   const tags = Array.isArray(body.tags) ? body.tags.filter((t: unknown) => TAGS.some(x => x.id === t)) : []
   const isOpen = body.is_open !== false
 
-  // Only ask uma.moe when the ID changed; the bot keeps existing posts fresh.
+  // Fresh uma.moe numbers on every save. A new ID has to check out; for the same
+  // ID a failed lookup keeps the last numbers and the bot retries later.
   const prev = await queryOne<{ trainer_id: string }>(
     'SELECT trainer_id FROM recruit_player_posts WHERE discord_user_id = $1::bigint', [me.discordId]
   )
   let stats: string | null = null
   let trainerName: string | null = null
-  if (prev?.trainer_id !== trainerId) {
-    const found = await lookupTrainer(trainerId)
-    if (!found.ok) return NextResponse.json({ error: found.error }, { status: found.status })
+  const found = await lookupTrainer(trainerId)
+  if (found.ok) {
     stats = JSON.stringify(found.trainer)
     trainerName = found.trainer.trainer_name
+  } else if (prev?.trainer_id !== trainerId) {
+    return NextResponse.json({ error: found.error }, { status: found.status })
   }
 
   await query(

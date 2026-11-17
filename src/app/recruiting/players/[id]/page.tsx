@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, permanentRedirect } from 'next/navigation'
 import { ArrowLeft, BadgeCheck } from 'lucide-react'
 import { getPlayerPost, UUID_RE } from '@/lib/recruiting'
 import { formatFans, timeAgo } from '@/lib/format'
-import { formatTrainerId } from '@/lib/recruiting-shared'
+import { formatTrainerId, playerPostPath } from '@/lib/recruiting-shared'
 import { Stat, StatStrip } from '@/components/dash/ui'
 import { GradeBadge, PlayerAvatar, Tags } from '@/components/recruiting/cards'
 import CopyButton from '@/components/recruiting/CopyButton'
@@ -13,7 +13,6 @@ import { DiscordIcon } from '@/components/recruiting/DiscordIcon'
 type Props = { params: Promise<{ id: string }> }
 
 async function load(id: string) {
-  if (!UUID_RE.test(id)) return null
   return getPlayerPost(id).catch(() => null)
 }
 
@@ -32,8 +31,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function PlayerListingPage({ params }: Props) {
-  const p = await load((await params).id)
+  const { id } = await params
+  const p = await load(id)
   if (!p) notFound()
+  // old uuid links move to the trainer ID
+  if (UUID_RE.test(id)) permanentRedirect(playerPostPath(p))
   const s = p.stats
 
   return (
