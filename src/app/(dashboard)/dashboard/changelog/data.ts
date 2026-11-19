@@ -5,9 +5,19 @@ export const CHANGELOG: {
   entries: { type: 'feat' | 'fix' | 'improve'; text: string }[]
 }[] = [
   {
+    version: '2.1',
+    date: 'Nov 19, 2026',
+    isNew: true,
+    entries: [
+      { type: 'feat',    text: 'Alliances: put your club and its sister clubs on one shared leaderboard. One club creates the alliance on the new Alliance page and shares its code, the others join with it' },
+      { type: 'feat',    text: 'The leaderboard ranks clubs by fans this month, with fans per trainer and the latest day, and every trainer from every club on one list' },
+      { type: 'feat',    text: '/alliance in Discord posts the standings, and the owner club can make the leaderboard a public page anyone can open' },
+    ],
+  },
+  {
     version: '2.0',
     date: 'Nov 16, 2026',
-    isNew: true,
+    isNew: false,
     entries: [
       { type: 'feat',    text: 'Recruiting board at umacore.app/recruiting: clubs looking for trainers and trainers looking for a club, open to everyone without signing in' },
       { type: 'feat',    text: 'List your club from the new Recruiting page with a headline, description, Discord invite, banner artwork and accent colour. Rank, grade, open slots, quota and average fans fill in from your daily scrape' },

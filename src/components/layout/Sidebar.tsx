@@ -9,7 +9,7 @@ import { signOut } from 'next-auth/react'
 import {
   LayoutGrid, UserRound, BookOpen, Gauge, Users, ArrowLeftRight, FileBarChart2, History,
   Bomb, Settings, ClipboardList, KeyRound, Sparkles, PlusCircle, ShieldAlert, Activity,
-  LogOut, Menu, X, Search, ChevronsUpDown, Check, LayoutDashboard, Palette, Megaphone,
+  LogOut, Menu, X, Search, ChevronsUpDown, Check, LayoutDashboard, Palette, Megaphone, Handshake,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -93,6 +93,7 @@ export default function Sidebar({
         { label: 'Quota history', href: '/dashboard/quota', icon: History },
         { label: 'Bombs', href: '/dashboard/bombs', icon: Bomb, badge: counts.bombs, badgeTone: 'bad' },
         { label: 'Transfers', href: '/dashboard/transfers', icon: ArrowLeftRight, badge: counts.transfers, badgeTone: 'brand' },
+        { label: 'Alliance', href: '/dashboard/alliance', icon: Handshake },
       ]
     : []
   const manage: NavItem[] = active
