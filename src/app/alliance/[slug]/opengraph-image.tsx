@@ -31,6 +31,9 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   const clubs = alliance?.is_public ? await listAllianceClubs(alliance.alliance_id).catch(() => []) : []
   const { rows, openSlots, openClubs } = allianceSlots(clubs)
   const shown = rows.slice(0, SHOWN)
+  const title = alliance?.is_public ? alliance.name : 'UmaCore'
+  // long names shrink to fit the left column instead of cutting off
+  const titleSize = Math.max(34, Math.min(66, Math.floor(670 / (title.length * 0.7))))
   const art = await mascot()
 
   const num = { display: 'flex', justifyContent: 'flex-end' } as const
@@ -62,10 +65,10 @@ export default async function Image({ params }: { params: Promise<{ slug: string
           </div>
 
           <div style={{
-            display: 'flex', marginTop: '14px', color: '#ffffff', fontSize: '66px',
+            display: 'flex', marginTop: '14px', color: '#ffffff', fontSize: `${titleSize}px`,
             lineHeight: 1.1, letterSpacing: '-2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
-            {alliance?.is_public ? alliance.name : 'UmaCore'}
+            {title}
           </div>
 
           {rows.length > 0 && (
