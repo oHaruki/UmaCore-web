@@ -81,6 +81,20 @@ export async function getClubPost(key: string): Promise<ClubListing | null> {
   )
 }
 
+/** Every club of an alliance with its listing data. has_post is false for clubs that never listed. */
+export async function listAllianceClubs(allianceId: string): Promise<(ClubListing & { has_post: boolean })[]> {
+  return query(
+    `SELECT ${CLUB_COLUMNS}, (p.club_id IS NOT NULL) AS has_post
+     FROM alliance_clubs ac
+     JOIN clubs c ON c.club_id = ac.club_id AND c.is_active
+     LEFT JOIN recruit_club_posts p ON p.club_id = c.club_id
+     ${CLUB_STATS_JOINS}
+     WHERE ac.alliance_id = $1::uuid
+     ORDER BY ac.joined_at`,
+    [allianceId]
+  )
+}
+
 /** The club's listing for its editor, with live stats even before one exists. */
 export async function getClubForEditor(clubId: string): Promise<(ClubListing & { has_post: boolean }) | null> {
   return queryOne(

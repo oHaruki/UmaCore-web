@@ -186,6 +186,30 @@ export function clubDailyAvg(c: Pick<ClubListing, 'daily_avg' | 'total_fans' | '
   return day > 0 ? Math.round(c.total_fans / c.tracked / day) : null
 }
 
+export type AllianceClubSlots = {
+  club: ClubListing & { has_post: boolean }
+  perDay: number
+  open: number
+  /** a club that listed and then closed its post is not taking anyone */
+  recruiting: boolean
+}
+
+/** What an alliance offers a recruit: clubs by quota per day, lowest first, with their free slots. */
+export function allianceSlots(clubs: (ClubListing & { has_post: boolean })[]) {
+  const rows: AllianceClubSlots[] = clubs
+    .map(club => {
+      const open = Math.max(0, CLUB_SLOTS - club.members)
+      return {
+        club, open,
+        perDay: quotaPerDay(club.quota, club.quota_period),
+        recruiting: open > 0 && !(club.has_post && !club.is_open),
+      }
+    })
+    .sort((a, b) => a.perDay - b.perDay || a.club.club_name.localeCompare(b.club.club_name))
+  const openSlots = rows.reduce((n, r) => n + (r.recruiting ? r.open : 0), 0)
+  return { rows, openSlots, openClubs: rows.filter(r => r.recruiting).length }
+}
+
 /** Public link for a club listing: its circle ID, like /club/<id>. */
 export const clubPostPath = (c: Pick<ClubListing, 'circle_id' | 'club_id'>) =>
   `/recruiting/clubs/${c.circle_id ?? c.club_id}`
